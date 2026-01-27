@@ -24,33 +24,33 @@ jobs:
             $NATIVE_OVERLAY
           cat led_tests/native_sim.overlay
 
-      # # 3. Initialize west
-      # - name: West init
-      #   run: |
-      #     cd led_tests
-      #     west init
-      #     west update -o=--depth=1 -n
+      # 3. Initialize west
+      - name: West init
+        run: |
+          cd led_tests
+          west init
+          west update -o=--depth=1 -n
 
-      # # 4. Build for native_sim using both overlays
-      # - name: Build for native_sim
-      #   run: |
-      #     cd led_tests
-      #     west build -b native_sim -- \
-      #       -DDTC_OVERLAY_FILE="boards/native_posix.overlay;native_sim.overlay"
+      # 4. Build for native_sim using both overlays
+      - name: Build for native_sim
+        run: |
+          cd led_tests
+          west build -b native_sim -- \
+            -DDTC_OVERLAY_FILE="boards/native_posix.overlay;native_sim.overlay"
 
-      # # 5. Run the simulation and capture output
-      # - name: Run simulation
-      #   run: |
-      #     cd led_tests
-      #     build/zephyr/zephyr.exe | tee simulation_output.log
+      # 5. Run the simulation and capture output
+      - name: Run simulation
+        run: |
+          cd led_tests
+          build/zephyr/zephyr.exe | tee simulation_output.log
 
-      # # 6. Check that LEDs turned on/off
-      # - name: Check LED/button output
-      #   run: |
-      #     cd led_tests
-      #     if grep -q "LED ON" simulation_output.log && grep -q "LED OFF" simulation_output.log; then
-      #         echo "LED toggled correctly!"
-      #     else
-      #         echo "LED did not toggle correctly!"
-      #         exit 1
-      #     fi
+      # 6. Check that LEDs turned on/off
+      - name: Check LED/button output
+        run: |
+          cd led_tests
+          if grep -q "LED ON" simulation_output.log && grep -q "LED OFF" simulation_output.log; then
+              echo "LED toggled correctly!"
+          else
+              echo "LED did not toggle correctly!"
+              exit 1
+          fi
