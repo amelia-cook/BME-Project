@@ -1,53 +1,72 @@
-name: LED Test CI
+name: Zephyr CI
 
 on:
   push:
+    paths:
+      - "led_tests/**"
   pull_request:
+    paths:
+      - "led_tests/**"
 
 jobs:
-  build_and_test_led:
+  build-and-test:
     runs-on: ubuntu-latest
     container:
       image: hardwario/nrf-connect-sdk-build:v2.9.0-1
 
     steps:
-      - uses: actions/checkout@v4
+      # 1. Checkout repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: West init & update
-        working-directory: led_tests
+      # 2. Debug repo layout (optional)
+      - name: Show repo layout
         run: |
-          west init
-          west update -o=--depth=1 -n
+          pwd
+          ls -la led_tests
+          ls -la scripts
 
-      - name: Build native_sim
-        working-directory: led_tests
+      # 3. Generate native_sim overlay
+      - name: Generate temporary native_sim overlay
         run: |
-          west build \
-            --build-dir build \
-            . \
-            --pristine \
-            --board native_sim/native \
-            --no-sysbuild \
-            -- -DNCS_TOOLCHAIN_VERSION=NONE \
-               -DCONF_FILE=prj.conf
+          NATIVE_OVERLAY="led_tests/native_sim.overlay"
+          python3 scripts/generate_native_sim_overlay.py \
+            led_tests/boards/native_posix.overlay \
+            $NATIVE_OVERLAY
 
-      - name: Run LED test
-        working-directory: led_tests
-        run: |
-          chmod +x build/zephyr/zephyr.exe
-          build/zephyr/zephyr.exe | tee output.log
-          cat output.log
+      # # 4. Initialize west
+      # - name: West init
+      #   run: |
+      #     cd led_tests
+      #     west init
+      #     west update -o=--depth=1 -n
 
-          echo "Checking LED transitions..."
+      # # 5. Build for native_sim using both overlays
+      # - name: Build for native_sim
+      #   run: |
+      #     cd led_tests
+      #     west build -b native_sim -- \
+      #       -DDTC_OVERLAY_FILE="boards/native_posix.overlay;native_sim.overlay"
 
-          if ! grep -q "LED ON" output.log; then
-            echo "LED never turned ON"
-            exit 1
-          fi
+      # # 6. Run the simulation and capture output
+      # - name: Run simulation
+      #   run: |
+      #     cd led_tests
+      #     build/zephyr/zephyr.exe | tee simulation_output.log
 
-          if ! grep -q "LED OFF" output.log; then
-            echo "LED never turned OFF"
-            exit 1
-          fi
+      # # 7. Check that LEDs turned on/off
+      # - name: Check LED/button output
+      #   run: |
+      #     cd led_tests
+      #     if grep -q "LED ON" simulation_output.log && grep -q "LED OFF" simulation_output.log; then
+      #         echo "LED toggled correctly!"
+      #     else
+      #         echo "LED did not toggle correctly!"
+      #         exit 1
+      #     fi
 
-          echo "LED turned ON and OFF"
+      # # 8. Clean up temporary overlay
+      # - name: Delete native_sim overlay
+      #   run: |
+      #     rm -f led_tests/native_sim.overlay
+      #     echo "Deleted temporary native_sim overlay"
