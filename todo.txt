@@ -1,11 +1,4 @@
 TODO:
-- write simple script -- use c programming lab and AI to write file to run CI script that works with github
-- test leds with script 
-- emulate ISR and test
-
-Assignment:
-simple test for GPIO lab:
-- led is off, test that, led is on, test that
-- something that emulates the ISR going off for a button press, have that trigger the led state
-- repo on GitHub or gitlab (DONE -- GITHUB)
-
+- test leds with script
+- build led w button presses
+- emulate ISR and test etc
