@@ -1,0 +1,6 @@
+/ {
+  aliases {
+    // add your aliases here; examples:
+    ledtest = &led0;  // this corresponds to LED1 on the board
+  };
+};

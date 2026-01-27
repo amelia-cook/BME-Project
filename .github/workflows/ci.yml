@@ -1,11 +1,53 @@
-name: CI
+name: LED Test CI
 
 on:
   push:
   pull_request:
 
 jobs:
-  sanity:
+  build_and_test_led:
     runs-on: ubuntu-latest
+    container:
+      image: hardwario/nrf-connect-sdk-build:v2.9.0-1
+
     steps:
-      - run: echo "CI is alive!"
+      - uses: actions/checkout@v4
+
+      - name: West init & update
+        working-directory: led_test
+        run: |
+          west init
+          west update -o=--depth=1 -n
+
+      - name: Build native_sim
+        working-directory: led_test
+        run: |
+          west build \
+            --build-dir build \
+            . \
+            --pristine \
+            --board native_sim/native \
+            --no-sysbuild \
+            -- -DNCS_TOOLCHAIN_VERSION=NONE \
+               -DCONF_FILE=prj.conf
+
+      - name: Run LED test
+        working-directory: led_test
+        run: |
+          chmod +x build/zephyr/zephyr.exe
+          build/zephyr/zephyr.exe | tee output.log
+          cat output.log
+
+          echo "Checking LED transitions..."
+
+          if ! grep -q "LED ON" output.log; then
+            echo "LED never turned ON"
+            exit 1
+          fi
+
+          if ! grep -q "LED OFF" output.log; then
+            echo "LED never turned OFF"
+            exit 1
+          fi
+
+          echo "LED turned ON and OFF"
