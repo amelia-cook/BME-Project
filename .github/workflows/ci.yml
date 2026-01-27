@@ -2,11 +2,7 @@ name: Zephyr CI
 
 on:
   push:
-    paths:
-      - "led_tests/**"
   pull_request:
-    paths:
-      - "led_tests/**"
 
 jobs:
   build-and-test:
