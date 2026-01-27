@@ -14,13 +14,13 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: West init & update
-        working-directory: led_test
+        working-directory: led_tests
         run: |
           west init
           west update -o=--depth=1 -n
 
       - name: Build native_sim
-        working-directory: led_test
+        working-directory: led_tests
         run: |
           west build \
             --build-dir build \
@@ -32,7 +32,7 @@ jobs:
                -DCONF_FILE=prj.conf
 
       - name: Run LED test
-        working-directory: led_test
+        working-directory: led_tests
         run: |
           chmod +x build/zephyr/zephyr.exe
           build/zephyr/zephyr.exe | tee output.log
