@@ -34,6 +34,7 @@ lines = []
 lines.append("/ {")
 lines.append("    aliases {")
 for alias in student_aliases:
+    # Alias points directly to the simulated node
     lines.append(f"        {alias} = &sim_{alias};")
 lines.append("    };")
 lines.append("")
@@ -41,18 +42,15 @@ lines.append("")
 gpio_pin = 10
 for alias in student_aliases:
     if "led" in alias.lower():
-        lines.append(f"    sim_{alias}: gpio_led_{alias} {{")
+        # Flattened node: compatible + gpios directly
+        lines.append(f"    sim_{alias}: sim_{alias} {{")
         lines.append('        compatible = "gpio-leds";')
-        lines.append(f"        {alias} {{")
-        lines.append(f"            gpios = <&gpio0 {gpio_pin} GPIO_ACTIVE_HIGH>;")
-        lines.append("        };")
+        lines.append(f"        gpios = <&gpio0 {gpio_pin} GPIO_ACTIVE_HIGH>;")
         lines.append("    };")
     else:
-        lines.append(f"    sim_{alias}: gpio_key_{alias} {{")
+        lines.append(f"    sim_{alias}: sim_{alias} {{")
         lines.append('        compatible = "gpio-keys";')
-        lines.append(f"        {alias} {{")
-        lines.append(f"            gpios = <&gpio0 {gpio_pin} GPIO_ACTIVE_LOW>;")
-        lines.append("        };")
+        lines.append(f"        gpios = <&gpio0 {gpio_pin} GPIO_ACTIVE_LOW>;")
         lines.append("    };")
     gpio_pin += 1
 
