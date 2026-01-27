@@ -15,42 +15,36 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # # 2. Debug repo layout (optional)
-      # - name: Show repo layout
-      #   run: |
-      #     pwd
-      #     ls -la led_tests
-      #     ls -la scripts
-
-      # 3. Generate native_sim overlay
+      # 2. Generate native_sim overlay
       - name: Generate temporary native_sim overlay
         run: |
           NATIVE_OVERLAY="led_tests/native_sim.overlay"
           python3 scripts/generate_overlay.py \
             led_tests/boards/native_posix.overlay \
             $NATIVE_OVERLAY
+          cat led_tests/native_sim.overlay
 
-      # # 4. Initialize west
+      # # 3. Initialize west
       # - name: West init
       #   run: |
       #     cd led_tests
       #     west init
       #     west update -o=--depth=1 -n
 
-      # # 5. Build for native_sim using both overlays
+      # # 4. Build for native_sim using both overlays
       # - name: Build for native_sim
       #   run: |
       #     cd led_tests
       #     west build -b native_sim -- \
       #       -DDTC_OVERLAY_FILE="boards/native_posix.overlay;native_sim.overlay"
 
-      # # 6. Run the simulation and capture output
+      # # 5. Run the simulation and capture output
       # - name: Run simulation
       #   run: |
       #     cd led_tests
       #     build/zephyr/zephyr.exe | tee simulation_output.log
 
-      # # 7. Check that LEDs turned on/off
+      # # 6. Check that LEDs turned on/off
       # - name: Check LED/button output
       #   run: |
       #     cd led_tests
@@ -60,9 +54,3 @@ jobs:
       #         echo "LED did not toggle correctly!"
       #         exit 1
       #     fi
-
-      # # 8. Clean up temporary overlay
-      # - name: Delete native_sim overlay
-      #   run: |
-      #     rm -f led_tests/native_sim.overlay
-      #     echo "Deleted temporary native_sim overlay"
