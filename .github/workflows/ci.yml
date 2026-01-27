@@ -15,18 +15,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. Debug repo layout (optional)
-      - name: Show repo layout
-        run: |
-          pwd
-          ls -la led_tests
-          ls -la scripts
+      # # 2. Debug repo layout (optional)
+      # - name: Show repo layout
+      #   run: |
+      #     pwd
+      #     ls -la led_tests
+      #     ls -la scripts
 
       # 3. Generate native_sim overlay
       - name: Generate temporary native_sim overlay
         run: |
           NATIVE_OVERLAY="led_tests/native_sim.overlay"
-          python3 scripts/generate_native_sim_overlay.py \
+          python3 scripts/generate_overlay.py \
             led_tests/boards/native_posix.overlay \
             $NATIVE_OVERLAY
 
