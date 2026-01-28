@@ -42,7 +42,8 @@ jobs:
       - name: Run simulation
         run: |
           cd led_tests
-          build/zephyr/zephyr.exe | tee simulation_output.log
+          chmod +x build/zephyr/zephyr.exe
+          build/zephyr/zephyr.exe -stop_at=0 | tee simulation_output.log
 
       # 6. Check that LEDs turned on/off
       - name: Check LED/button output

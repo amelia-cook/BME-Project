@@ -41,11 +41,11 @@ static int init(){
 
 static void run(){
     gpio_pin_set_dt(&ledtest, LED_ON);
-    printk("LED ON");
+    printk("LED ON\n");
     k_msleep(HEARTBEAT_TOGGLE_INTERVAL_MS);
 
     gpio_pin_set_dt(&ledtest, LED_OFF);
-    printk("LED OFF");
+    printk("LED OFF\n");
     k_msleep(HEARTBEAT_TOGGLE_INTERVAL_MS);
 }
 
