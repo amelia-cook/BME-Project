@@ -43,12 +43,13 @@ jobs:
         run: |
           cd led_tests
           chmod +x build/zephyr/zephyr.exe
-          build/zephyr/zephyr.exe -stop_at=0 | tee simulation_output.log
+          build/zephyr/zephyr.exe -stop_at=6000 | tee simulation_output.log
 
       # 6. Check that LEDs turned on/off
       - name: Check LED/button output
         run: |
           cd led_tests
+          cat simulation_output.log
           if grep -q "LED ON" simulation_output.log && grep -q "LED OFF" simulation_output.log; then
               echo "LED toggled correctly!"
           else
