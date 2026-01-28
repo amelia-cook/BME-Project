@@ -42,8 +42,8 @@ for alias in student_aliases:
     if "led" in alias.lower():
         lines.append(f"    sim_{alias}: sim_{alias} {{")
         lines.append('        compatible = "gpio-leds";')
-        lines.append(f"        {alias} {{")
-        lines.append(f"            gpios = <&gpio0 {gpio_pin} GPIO_ACTIVE_HIGH>;")
+        lines.append(f"        sim_{alias}_child: {alias} {{")
+        lines.append(f"            gpios = <&gpio0 {gpio_pin} GPIO_ACTIVE_LOW>;")
         lines.append("        };")
         lines.append("    };")
     else:
