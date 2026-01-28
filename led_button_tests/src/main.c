@@ -82,9 +82,9 @@ int main(void)
         gpio_pin_set_dt(&led_test, LED_STATE);
         k_event_clear(&button_events, BUTTON_EVENT);
         if(LED_STATE == LED_OFF){
-            LOG_INF("Button OFF pressed, LED OFF");
+            LOG_INF("Button OFF pressed, LED OFF\n");
         } else {
-            LOG_INF("Button ON pressed, LED ON");
+            LOG_INF("Button ON pressed, LED ON\n");
         }
     }
 
@@ -95,9 +95,9 @@ int main(void)
         gpio_pin_set_dt(&led_test, LED_STATE);
         k_event_clear(&button_events, BUTTON_EVENT);
         if(LED_STATE == LED_OFF){
-            LOG_INF("Button OFF pressed, LED OFF");
+            LOG_INF("Button OFF pressed, LED OFF\n");
         } else {
-            LOG_INF("Button ON pressed, LED ON");
+            LOG_INF("Button ON pressed, LED ON\n");
         }
     }
 
