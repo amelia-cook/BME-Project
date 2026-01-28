@@ -1,63 +1,57 @@
 #!/usr/bin/env python3
+
 import re
 import sys
 from pathlib import Path
 
 if len(sys.argv) != 3:
-    print("Usage: generate_overlay.py <student.overlay> <output.overlay>")
+    print("Usage: generate_overlay.py <student_overlay> <output_overlay>")
     sys.exit(1)
 
-student_overlay_path = Path(sys.argv[1])
-output_overlay_path = Path(sys.argv[2])
+student_overlay = Path(sys.argv[1])
+output_overlay = Path(sys.argv[2])
 
-if not student_overlay_path.exists():
-    print(f"Error: {student_overlay_path} does not exist")
+text = student_overlay.read_text()
+
+# Extract alias names ONLY (ignore what they point to)
+alias_pattern = re.compile(r'(\w+)\s*=\s*&\w+\s*;')
+aliases = alias_pattern.findall(text)
+
+if not aliases:
+    print("Error: no aliases found in student overlay")
     sys.exit(1)
 
-overlay_text = student_overlay_path.read_text()
+# Start generating native_sim overlay
+lines = []
+lines.append("/ {")
+lines.append("    aliases {")
 
-# Extract aliases block
-aliases_block = re.search(r"aliases\s*{([^}]*)};", overlay_text, re.DOTALL)
-if not aliases_block:
-    print("Warning: No aliases block found in student overlay")
-    student_aliases = []
-else:
-    aliases_text = aliases_block.group(1)
-    # Match alias names like: ledtest = &led0;
-    student_aliases = re.findall(r"(\w+)\s*=\s*&\w+\s*;", aliases_text)
-
-if not student_aliases:
-    print("No aliases found. Output overlay will be mostly empty except enabling gpio0.")
-
-# Start generating overlay
-lines = ["/ {", "    aliases {"]
-for alias in student_aliases:
+for alias in aliases:
     lines.append(f"        {alias} = &sim_{alias};")
+
 lines.append("    };")
 lines.append("")
+lines.append("    sim_leds {")
+lines.append("        compatible = \"gpio-leds\";")
+lines.append("")
 
-# Generate container + child nodes
+# Generate one LED per alias
 gpio_pin = 10
-for alias in student_aliases:
-    if "led" in alias.lower():
-        lines.append(f"    sim_{alias}: sim_{alias} {{")
-        lines.append('        compatible = "gpio-leds";')
-        lines.append(f"        sim_{alias}_child: {alias} {{")
-        lines.append(f"            gpios = <&gpio0 {gpio_pin} GPIO_ACTIVE_LOW>;")
-        lines.append("        };")
-        lines.append("    };")
-    else:
-        lines.append(f"    sim_{alias}: sim_{alias} {{")
-        lines.append('        compatible = "gpio-keys";')
-        lines.append(f"        {alias} {{")
-        lines.append(f"            gpios = <&gpio0 {gpio_pin} GPIO_ACTIVE_LOW>;")
-        lines.append("        };")
-        lines.append("    };")
+for alias in aliases:
+    lines.append(f"        sim_{alias}: led_{gpio_pin} {{")
+    lines.append(f"            gpios = <&gpio0 {gpio_pin} GPIO_ACTIVE_HIGH>;")
+    lines.append(f"            label = \"SIM_{alias.upper()}\";")
+    lines.append("        };")
+    lines.append("")
     gpio_pin += 1
 
+lines.append("    };")
 lines.append("};")
-lines.append("&gpio0 { status = \"okay\"; };")
+lines.append("")
+lines.append("&gpio0 {")
+lines.append("    status = \"okay\";")
+lines.append("};")
 
-# Write overlay to file
-output_overlay_path.write_text("\n".join(lines))
-print(f"Generated native_sim overlay at {output_overlay_path}")
+output_overlay.write_text("\n".join(lines))
+
+print(f"Generated native_sim overlay with aliases: {', '.join(aliases)}")

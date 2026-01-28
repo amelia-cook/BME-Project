@@ -1,7 +1,7 @@
 / {
   aliases {
     // add your aliases here; examples:
-    buttontest: &button0;
+    buttontest = &button0;
     ledtest = &led0;  // this corresponds to LED1 on the board
   };
 

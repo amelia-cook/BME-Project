@@ -64,7 +64,7 @@ static int init(){
     }
 
     gpio_init_callback(&button_cb, button_callback, BIT(buttontest.pin)); // populate CB struct with information about the CB function and pin
-    gpio_add_callback_dt(buttontest, &button_cb);
+    gpio_add_callback_dt(&buttontest, &button_cb);
 
     gpio_pin_set_dt(&ledtest, LED_STATE);
 
