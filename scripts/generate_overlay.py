@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 
 if len(sys.argv) != 3:
-    print("Usage: generate_native_sim_overlay.py <student.overlay> <output.overlay>")
+    print("Usage: generate_overlay.py <student.overlay> <output.overlay>")
     sys.exit(1)
 
 student_overlay_path = Path(sys.argv[1])
@@ -27,36 +27,37 @@ else:
     student_aliases = re.findall(r"(\w+)\s*=\s*&\w+\s*;", aliases_text)
 
 if not student_aliases:
-    print("No aliases found. Output overlay will be empty except enabling gpio0.")
+    print("No aliases found. Output overlay will be mostly empty except enabling gpio0.")
 
-# Generate the native_sim overlay
-lines = []
-lines.append("/ {")
-lines.append("    aliases {")
+# Start generating overlay
+lines = ["/ {", "    aliases {"]
 for alias in student_aliases:
-    # Alias points directly to the simulated node
     lines.append(f"        {alias} = &sim_{alias};")
 lines.append("    };")
 lines.append("")
 
+# Generate container + child nodes
 gpio_pin = 10
 for alias in student_aliases:
     if "led" in alias.lower():
-        # Flattened node: compatible + gpios directly
         lines.append(f"    sim_{alias}: sim_{alias} {{")
         lines.append('        compatible = "gpio-leds";')
-        lines.append(f"        gpios = <&gpio0 {gpio_pin} GPIO_ACTIVE_HIGH>;")
+        lines.append(f"        {alias} {{")
+        lines.append(f"            gpios = <&gpio0 {gpio_pin} GPIO_ACTIVE_HIGH>;")
+        lines.append("        };")
         lines.append("    };")
     else:
         lines.append(f"    sim_{alias}: sim_{alias} {{")
         lines.append('        compatible = "gpio-keys";')
-        lines.append(f"        gpios = <&gpio0 {gpio_pin} GPIO_ACTIVE_LOW>;")
+        lines.append(f"        {alias} {{")
+        lines.append(f"            gpios = <&gpio0 {gpio_pin} GPIO_ACTIVE_LOW>;")
+        lines.append("        };")
         lines.append("    };")
     gpio_pin += 1
 
 lines.append("};")
 lines.append("&gpio0 { status = \"okay\"; };")
 
-# Write the overlay file
+# Write overlay to file
 output_overlay_path.write_text("\n".join(lines))
 print(f"Generated native_sim overlay at {output_overlay_path}")
