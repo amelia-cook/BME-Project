@@ -49,14 +49,13 @@ jobs:
       #   run: |
       #     cd led_tests
       #     chmod +x build/zephyr/zephyr.exe
-      #     timeout 10s stdbuf -oL build/zephyr/zephyr.exe | tee simulation_output.log
+      #     timeout 10s stdbuf -oL build/zephyr/zephyr.exe | tee led_tests_out.log
 
       # # 6. Check that LEDs turned on/off
       # - name: Check LED/button output
       #   run: |
       #     cd led_tests
-      #     cat simulation_output.log
-      #     if grep -q "LED ON" simulation_output.log && grep -q "LED OFF" simulation_output.log; then
+      #     if grep -q "LED ON" led_tests_out.log && grep -q "LED OFF" led_tests_out.log; then
       #         echo "LED toggled correctly!"
       #     else
       #         echo "LED did not toggle correctly!"
@@ -79,6 +78,17 @@ jobs:
             led_button_tests/boards/native_posix.overlay \
             $NATIVE_OVERLAY
           cat led_button_tests/native_sim.overlay
+      
+      - name: Create native_sim CI config
+        run: |
+          cd led_button_tests
+          cat <<'EOF' > ci_native_sim.conf
+          CONFIG_NATIVE_SIM=y
+          CONFIG_NATIVE_SIM_GPIO=y
+          CONFIG_NATIVE_SIM_GPIO_STDIN=y
+          CONFIG_GPIO_KEYS=y
+          EOF
+          cat ci_native_sim.conf
 
       - name: West init
         run: |
@@ -90,18 +100,19 @@ jobs:
         run: |
           cd led_button_tests
           west build -b native_sim -- \
-            -DDTC_OVERLAY_FILE=native_sim.overlay
+            -DDTC_OVERLAY_FILE=native_sim.overlay \
+            -DEXTRA_CONF_FILE=ci_native_sim.conf
 
-      # - name: Run simulation
-      #   run: |
-      #     cd led_button_tests
-      #     chmod +x build/zephyr/zephyr.exe
-      #     # timeout 10s stdbuf -oL build/zephyr/zephyr.exe | tee simulation_output.log
+      - name: Run simulation
+        run: |
+          cd led_button_tests
+          chmod +x build/zephyr/zephyr.exe
+          timeout 10s stdbuf -oL build/zephyr/zephyr.exe | tee led_button_tests_log.log
 
       # - name: Check LED + button output
       #   run: |
       #     cd led_button_tests
-      #     if grep -q "BUTTON PRESSED" simulation_output.log; then
+      #     if grep -q "BUTTON PRESSED" led_button_tests_log.log; then
       #       echo "Button test passed!"
       #     else
       #       echo "Button test failed!"
