@@ -88,7 +88,7 @@ jobs:
           CONFIG_LOG=y
           CONFIG_LOG_MODE_IMMEDIATE=y
           CONFIG_LOG_MODE_DEFERRED=n
-          CONFIG_LOG_BACKEND_NATIVE_SIM=y
+          CONFIG_LOG_BUFFER_SIZE=0
           CONFIG_LOG_DEFAULT_LEVEL=4
           EOF
           cat ci_native_sim.conf
