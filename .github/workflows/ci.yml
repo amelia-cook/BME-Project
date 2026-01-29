@@ -63,13 +63,6 @@ jobs:
       #         exit 1
       #     fi
 
-      # # - name: Upload simulation log
-      # #   if: failure()
-      # #   uses: actions/upload-artifact@v4
-      # #   with:
-      # #     name: simulation-log
-      # #     path: led_tests/simulation_output.log
-
   led-button-tests:
     runs-on: ubuntu-latest
     container:
@@ -87,17 +80,17 @@ jobs:
             $NATIVE_OVERLAY
           cat led_button_tests/native_sim.overlay
 
-      # - name: West init
-      #   run: |
-      #     cd led_button_tests
-      #     west init
-      #     west update -o=--depth=1 -n
+      - name: West init
+        run: |
+          cd led_button_tests
+          west init
+          west update -o=--depth=1 -n
 
-      # - name: Build for native_sim
-      #   run: |
-      #     cd led_button_tests
-      #     west build -b native_sim -- \
-      #       -DDTC_OVERLAY_FILE=native_sim.overlay
+      - name: Build for native_sim
+        run: |
+          cd led_button_tests
+          west build -b native_sim -- \
+            -DDTC_OVERLAY_FILE=native_sim.overlay
 
       # - name: Run simulation
       #   run: |
