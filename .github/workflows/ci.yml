@@ -83,10 +83,9 @@ jobs:
         run: |
           cd led_button_tests
           cat <<'EOF' > ci_native_sim.conf
-          CONFIG_NATIVE_SIM=y
-          CONFIG_NATIVE_SIM_GPIO=y
-          CONFIG_NATIVE_SIM_GPIO_STDIN=y
-          CONFIG_GPIO_KEYS=y
+          CONFIG_GPIO_NATIVE_SIM=y
+          CONFIG_GPIO_NATIVE_SIM_STDIN=y
+          CONFIG_INPUT_GPIO_KEYS=y
           EOF
           cat ci_native_sim.conf
 
@@ -118,3 +117,20 @@ jobs:
       #       echo "Button test failed!"
       #       exit 1
       #     fi
+      
+      
+      
+  #     - name: Run native_sim with two button presses
+  # run: |
+  #   cd led_button_tests
+
+  #   {
+  #     echo "gpio 0 0 0"
+  #     sleep 0.05
+  #     echo "gpio 0 0 1"
+  #     sleep 0.05
+  #     echo "gpio 0 0 0"
+  #     sleep 0.05
+  #     echo "gpio 0 0 1"
+  #   } | build/zephyr/zephyr.exe | tee sim_output.log
+
