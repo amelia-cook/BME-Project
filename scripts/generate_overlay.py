@@ -90,7 +90,7 @@ if button_aliases:
         lines.append(f"        sim_{alias}: key_{gpio_pin} {{")
         lines.append(f"            gpios = <&gpio0 {gpio_pin} GPIO_ACTIVE_LOW>;")
         lines.append(f"            label = \"SIM_{alias.upper()}\";")
-        lines.append("            linux,code = <1>; /* KEY_ESC */")
+        lines.append("            zephyr,code = <1>; /* KEY_ESC */")
         lines.append("        };")
         lines.append("")
         gpio_pin += 1
