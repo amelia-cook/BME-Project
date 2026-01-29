@@ -85,6 +85,11 @@ jobs:
           cat <<'EOF' > ci_native_sim.conf
           CONFIG_INPUT=y
           CONFIG_INPUT_GPIO_KEYS=y
+          CONFIG_LOG=y
+          CONFIG_LOG_MODE_IMMEDIATE=y
+          CONFIG_LOG_MODE_DEFERRED=n
+          CONFIG_LOG_BACKEND_NATIVE_SIM=y
+          CONFIG_LOG_DEFAULT_LEVEL=4
           EOF
           cat ci_native_sim.conf
 
@@ -105,21 +110,20 @@ jobs:
         run: |
           cd led_button_tests
           chmod +x build/zephyr/zephyr.exe
-          # timeout 10s stdbuf -oL build/zephyr/zephyr.exe | tee led_button_tests_log.log
           {
             echo "gpio 0 0 0"
             sleep 0.05
             echo "gpio 0 0 1"
-            sleep 0.05
+            sleep 0.1
             echo "gpio 0 0 0"
             sleep 0.05
             echo "gpio 0 0 1"
-          } | build/zephyr/zephyr.exe | tee sim_output.log
+          } | timeout 10s stdbuf -oL build/zephyr/zephyr.exe | tee led_button_tests_out.log
 
       # - name: Check LED + button output
       #   run: |
       #     cd led_button_tests
-      #     if grep -q "BUTTON PRESSED" led_button_tests_log.log; then
+      #     if grep -q "BUTTON PRESSED" led_button_tests_out.log; then
       #       echo "Button test passed!"
       #     else
       #       echo "Button test failed!"
