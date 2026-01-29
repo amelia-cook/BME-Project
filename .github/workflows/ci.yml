@@ -111,13 +111,13 @@ jobs:
           cd led_button_tests
           chmod +x build/zephyr/zephyr.exe
           {
-            echo "gpio 0 0 0"
-            sleep 0.05
-            echo "gpio 0 0 1"
-            sleep 0.1
-            echo "gpio 0 0 0"
-            sleep 0.05
-            echo "gpio 0 0 1"
+            echo "gpio 0 11 0"
+            sleep 0.15
+            echo "gpio 0 11 1"
+            sleep 0.15
+            echo "gpio 0 11 0"
+            sleep 0.15
+            echo "gpio 0 11 1"
           } | timeout 10s stdbuf -oL build/zephyr/zephyr.exe | tee led_button_tests_out.log
 
       # - name: Check LED + button output
