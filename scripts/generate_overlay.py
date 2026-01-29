@@ -42,10 +42,10 @@ led_aliases = []
 button_aliases = []
 
 for alias, target in matches:
-    t = target.lower()
-    if t.startswith("led"):
+    target_lower = target.lower()
+    if target_lower.startswith("led"):
         led_aliases.append(alias)
-    elif t.startswith("button"):
+    elif target_lower.startswith("button"):
         button_aliases.append(alias)
     else:
         print(f"Warning: skipping unknown target '&{target}'")
@@ -80,16 +80,17 @@ if led_aliases:
     lines.append("    };")
     lines.append("")
 
-# gpio-buttons (plain GPIOs, no input subsystem)
+# gpio-keys
 if button_aliases:
-    lines.append("    sim_buttons {")
+    lines.append("    sim_keys {")
     lines.append("        compatible = \"gpio-keys\";")
     lines.append("")
 
     for alias in button_aliases:
-        lines.append(f"        sim_{alias}: button_{gpio_pin} {{")
-        lines.append(f"            gpios = <&gpio0 {gpio_pin} GPIO_ACTIVE_LOW>;")
+        lines.append(f"        sim_{alias}: key_{gpio_pin} {{")
+        lines.append(f"            gpios = <&gpio0 {gpio_pin} GPIO_ACTIVE_HIGH>;")
         lines.append(f"            label = \"SIM_{alias.upper()}\";")
+        lines.append("            zephyr,code = <1>; /* KEY_ESC */")
         lines.append("        };")
         lines.append("")
         gpio_pin += 1
