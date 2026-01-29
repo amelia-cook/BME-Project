@@ -83,12 +83,12 @@ if led_aliases:
 # gpio-buttons (plain GPIOs, no input subsystem)
 if button_aliases:
     lines.append("    sim_buttons {")
-    lines.append("        compatible = \"gpio-buttons\";")
+    lines.append("        compatible = \"gpio-keys\";")
     lines.append("")
 
     for alias in button_aliases:
         lines.append(f"        sim_{alias}: button_{gpio_pin} {{")
-        lines.append(f"            gpios = <&gpio0 {gpio_pin} GPIO_ACTIVE_HIGH>;")
+        lines.append(f"            gpios = <&gpio0 {gpio_pin} GPIO_ACTIVE_LOW>;")
         lines.append(f"            label = \"SIM_{alias.upper()}\";")
         lines.append("        };")
         lines.append("")
