@@ -41,7 +41,8 @@ jobs:
       - name: Build for native_sim
         run: |
           cd led_tests
-          west build -b native_sim
+          west build -b native_sim -- \
+            -DDTC_OVERLAY_FILE=boards/native_sim.overlay
           cat boards/native_sim.overlay
 
       # 5. Run the simulation and capture output
