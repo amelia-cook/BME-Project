@@ -4,16 +4,16 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(led_button_tests)
 
 if(DEFINED TEST_BUILD AND TEST_BUILD)
-    # Test build: Compile main.c with a preprocessor flag to skip main()
-    # Add -D__ZTEST_MAIN__ which we'll check in a wrapper
-    target_compile_definitions(app PRIVATE __ZTEST_MAIN__=1)
+    # Test build: Create a wrapper that includes main.c but renames main()
+    # This avoids conflict with ztest's main()
     
-    # Create a wrapper that includes main.c but conditionally excludes main()
-    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/main_wrapper.c [[
-#define main student_main  /* Rename main to student_main */
-#include "${CMAKE_CURRENT_SOURCE_DIR}/src/main.c"
+    set(MAIN_C_PATH "${CMAKE_CURRENT_SOURCE_DIR}/src/main.c")
+    
+    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/main_wrapper.c
+"#define main student_main
+#include \"${MAIN_C_PATH}\"
 #undef main
-]])
+")
     
     target_sources(app PRIVATE 
         ${CMAKE_CURRENT_BINARY_DIR}/main_wrapper.c
