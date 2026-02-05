@@ -19,6 +19,10 @@
 extern struct k_event button_events;
 extern int LED_STATE;
 
+/* LED state macros (from main.c) */
+#define LED_ON 1
+#define LED_OFF 0
+
 /* Macro for button event bit */
 #define BUTTON_EVENT BIT(0)
 

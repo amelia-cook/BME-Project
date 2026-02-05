@@ -83,7 +83,8 @@ void test_button_callback_posts_event(void)
  */
 void test_button_callback_multiple_calls(void)
 {
-    k_event_clear(&button_events, BUTTON_EVENT);
+    /* Setup: ensure clean state */
+    test_setup();
     
     /* Call callback first time */
     button_test_callback(NULL, NULL, BIT(0));
@@ -127,17 +128,11 @@ void test_button_callback_with_pins(void)
                  "Callback should post event regardless of pin value");
 }
 
-/* Register test suite with ztest - using standard ztest API */
+/* Register test suite with ztest - using simpler API */
 ztest_test_suite(button_callback_tests,
-                 ztest_unit_test_setup_teardown(test_button_callback_posts_event,
-                                                test_setup, NULL),
-                 ztest_unit_test_setup_teardown(test_button_callback_multiple_calls,
-                                                test_setup, NULL),
-                 ztest_unit_test_setup_teardown(test_button_callback_with_pins,
-                                                test_setup, NULL)
+                 ztest_unit_test(test_button_callback_posts_event),
+                 ztest_unit_test(test_button_callback_multiple_calls),
+                 ztest_unit_test(test_button_callback_with_pins)
 );
 
-void test_main(void)
-{
-    ztest_run_test_suite(button_callback_tests);
-}
+/* ztest will automatically run all registered test suites */
