@@ -1,0 +1,136 @@
+/**
+ * @file test_button_callback.c
+ * @brief Unit tests for button callback functionality
+ * 
+ * This test file directly tests the button_test_callback function
+ * by calling it directly, simulating what would happen when an
+ * interrupt occurs. This approach allows us to test student code
+ * without modifying it or requiring actual hardware interrupts.
+ * 
+ * Testing Strategy:
+ * 1. Initialize the button_events k_event (if needed)
+ * 2. Clear any existing events
+ * 3. Directly call button_test_callback() to simulate interrupt
+ * 4. Verify that BUTTON_EVENT was posted to button_events
+ * 5. Verify LED_STATE changes appropriately
+ * 
+ * This follows the professor's guidance: "directly test the callback
+ * function by directly calling it in an emulated test rather than
+ * trying to 'trigger' the ISR and having that call the callback function."
+ */
+
+#include <zephyr/ztest.h>
+#include <zephyr/kernel.h>
+#include <zephyr/drivers/gpio.h>
+#include "test_button_callback.h"
+
+/**
+ * @brief Test fixture setup - runs before each test
+ * 
+ * This function is called automatically by ztest before each test
+ * function runs. We use it to ensure a clean state.
+ */
+static void test_setup(void)
+{
+    /* Initialize the event if not already initialized */
+    k_event_init(&button_events);
+    
+    /* Clear any existing events to ensure clean test state */
+    k_event_clear(&button_events, BUTTON_EVENT);
+    
+    /* Reset LED state to known value */
+    LED_STATE = LED_OFF;
+}
+
+/**
+ * @brief Test that callback posts BUTTON_EVENT when called
+ * 
+ * This test directly calls button_test_callback() and verifies
+ * that it correctly posts BUTTON_EVENT to the button_events
+ * k_event object.
+ */
+void test_button_callback_posts_event(void)
+{
+    /* Ensure clean state */
+    k_event_clear(&button_events, BUTTON_EVENT);
+    
+    /* Verify event is NOT set before callback */
+    uint32_t events_before = k_event_wait(&button_events, BUTTON_EVENT, 
+                                          false, K_NO_WAIT);
+    zassert_equal(events_before, 0, 
+                  "BUTTON_EVENT should not be set before callback");
+    
+    /* DIRECTLY CALL THE CALLBACK - simulating what happens in ISR */
+    /* We pass NULL for dev and cb since we're testing the callback logic,
+       not the actual GPIO interrupt mechanism */
+    button_test_callback(NULL, NULL, BIT(0));
+    
+    /* Give kernel a moment to process the event post */
+    k_msleep(10);
+    
+    /* Verify event IS set after callback */
+    uint32_t events_after = k_event_wait(&button_events, BUTTON_EVENT, 
+                                         false, K_NO_WAIT);
+    zassert_true(events_after & BUTTON_EVENT, 
+                 "BUTTON_EVENT should be posted by callback");
+}
+
+/**
+ * @brief Test that callback can be called multiple times
+ * 
+ * This test verifies that the callback can handle multiple
+ * invocations (simulating multiple button presses).
+ */
+void test_button_callback_multiple_calls(void)
+{
+    k_event_clear(&button_events, BUTTON_EVENT);
+    
+    /* Call callback first time */
+    button_test_callback(NULL, NULL, BIT(0));
+    k_msleep(10);
+    
+    uint32_t events1 = k_event_wait(&button_events, BUTTON_EVENT, 
+                                    false, K_NO_WAIT);
+    zassert_true(events1 & BUTTON_EVENT, 
+                 "First callback should post event");
+    
+    /* Clear the event */
+    k_event_clear(&button_events, BUTTON_EVENT);
+    
+    /* Call callback second time */
+    button_test_callback(NULL, NULL, BIT(0));
+    k_msleep(10);
+    
+    uint32_t events2 = k_event_wait(&button_events, BUTTON_EVENT, 
+                                    false, K_NO_WAIT);
+    zassert_true(events2 & BUTTON_EVENT, 
+                 "Second callback should also post event");
+}
+
+/**
+ * @brief Test that callback works with different pin values
+ * 
+ * This test verifies the callback handles the pins parameter
+ * correctly (though in this case it may not use it).
+ */
+void test_button_callback_with_pins(void)
+{
+    k_event_clear(&button_events, BUTTON_EVENT);
+    
+    /* Call with specific pin bit */
+    button_test_callback(NULL, NULL, BIT(11));  /* Pin 11 as used in CI */
+    k_msleep(10);
+    
+    uint32_t events = k_event_wait(&button_events, BUTTON_EVENT, 
+                                   false, K_NO_WAIT);
+    zassert_true(events & BUTTON_EVENT, 
+                 "Callback should post event regardless of pin value");
+}
+
+/* Register test suite with ztest */
+ZTEST_SUITE(button_callback_tests, NULL, NULL, test_setup, NULL, NULL);
+
+/* Register individual test cases */
+ZTEST(button_callback_tests, test_button_callback_posts_event);
+ZTEST(button_callback_tests, test_button_callback_multiple_calls);
+ZTEST(button_callback_tests, test_button_callback_with_pins);

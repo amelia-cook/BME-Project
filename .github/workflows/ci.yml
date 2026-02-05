@@ -99,33 +99,39 @@ jobs:
           west init
           west update -o=--depth=1 -n
 
-      - name: Build for native_sim
+      - name: Build application for native_sim (student code)
         run: |
           cd led_button_tests
           west build -b native_sim -- \
             -DDTC_OVERLAY_FILE=native_sim.overlay \
             -DEXTRA_CONF_FILE=ci_native_sim.conf
 
-      - name: Run simulation
+      - name: Build tests for native_sim
         run: |
           cd led_button_tests
-          chmod +x build/zephyr/zephyr.exe
-          {
-            echo "gpio 0 11 0"
-            sleep 0.15
-            echo "gpio 0 11 1"
-            sleep 0.15
-            echo "gpio 0 11 0"
-            sleep 0.15
-            echo "gpio 0 11 1"
-          } | timeout 10s stdbuf -oL build/zephyr/zephyr.exe | tee led_button_tests_out.log
+          west build -b native_sim --build-dir=build_test -- \
+            -DDTC_OVERLAY_FILE=native_sim.overlay \
+            -DEXTRA_CONF_FILE=test.prj.conf \
+            -DTEST_BUILD=ON
 
-      # - name: Check LED + button output
-      #   run: |
-      #     cd led_button_tests
-      #     if grep -q "BUTTON PRESSED" led_button_tests_out.log; then
-      #       echo "Button test passed!"
-      #     else
-      #       echo "Button test failed!"
-      #       exit 1
-      #     fi
+      - name: Run unit tests
+        run: |
+          cd led_button_tests
+          chmod +x build_test/zephyr/zephyr.exe
+          timeout 10s stdbuf -oL build_test/zephyr/zephyr.exe | tee test_output.log || true
+          
+      - name: Check test results
+        run: |
+          cd led_button_tests
+          if grep -q "PROJECT EXECUTION SUCCESSFUL" test_output.log; then
+            echo "✅ All tests passed!"
+            exit 0
+          elif grep -q "PROJECT EXECUTION FAILED" test_output.log; then
+            echo "❌ Tests failed!"
+            cat test_output.log
+            exit 1
+          else
+            echo "⚠️  Could not determine test status"
+            cat test_output.log
+            exit 1
+          fi
