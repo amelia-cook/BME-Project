@@ -19,7 +19,7 @@ if(DEFINED BOARD AND BOARD STREQUAL "native_sim")
   execute_process(
     COMMAND
       ${Python3_EXECUTABLE}
-      ${CMAKE_CURRENT_SOURCE_DIR}/scripts/generate_overlay.py
+      ${CMAKE_CURRENT_SOURCE_DIR}/../scripts/generate_overlay.py
       ${CMAKE_CURRENT_SOURCE_DIR}/boards/native_posix.overlay
     WORKING_DIRECTORY
       ${CMAKE_CURRENT_SOURCE_DIR}
