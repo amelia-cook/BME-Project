@@ -13,7 +13,7 @@ student_overlay = Path(sys.argv[1]).resolve()
 # -------------------------------------------------
 # Always output to boards/native_sim.overlay
 # -------------------------------------------------
-app_root = Path(__file__).resolve().parent.parent
+app_root = Path.cwd()
 output_overlay = app_root / "boards" / "native_sim.overlay"
 
 output_overlay.parent.mkdir(parents=True, exist_ok=True)
