@@ -127,10 +127,17 @@ void test_button_callback_with_pins(void)
                  "Callback should post event regardless of pin value");
 }
 
-/* Register test suite with ztest */
-ZTEST_SUITE(button_callback_tests, NULL, NULL, test_setup, NULL, NULL);
+/* Register test suite with ztest - using standard ztest API */
+ztest_test_suite(button_callback_tests,
+                 ztest_unit_test_setup_teardown(test_button_callback_posts_event,
+                                                test_setup, NULL),
+                 ztest_unit_test_setup_teardown(test_button_callback_multiple_calls,
+                                                test_setup, NULL),
+                 ztest_unit_test_setup_teardown(test_button_callback_with_pins,
+                                                test_setup, NULL)
+);
 
-/* Register individual test cases */
-ZTEST(button_callback_tests, test_button_callback_posts_event);
-ZTEST(button_callback_tests, test_button_callback_multiple_calls);
-ZTEST(button_callback_tests, test_button_callback_with_pins);
+void test_main(void)
+{
+    ztest_run_test_suite(button_callback_tests);
+}
