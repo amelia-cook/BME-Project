@@ -29,6 +29,10 @@ if(DEFINED BOARD AND BOARD STREQUAL "native_sim")
   if(NOT OVERLAY_RESULT EQUAL 0)
     message(FATAL_ERROR "Failed to generate native_sim overlay")
   endif()
+  
+  set(EXTRA_DTC_OVERLAY_FILE
+      ${CMAKE_CURRENT_SOURCE_DIR}/boards/native_sim.overlay
+  )
 
 endif()
 
