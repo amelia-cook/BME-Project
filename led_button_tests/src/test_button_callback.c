@@ -49,7 +49,7 @@ static void test_before(void *fixture)
  * that it correctly posts BUTTON_EVENT to the button_events
  * k_event object.
  */
-void test_button_callback_posts_event(void)
+ZTEST(button_callback_tests, test_button_callback_posts_event)
 {
     /* Ensure clean state */
     k_event_clear(&button_events, BUTTON_EVENT);
@@ -112,10 +112,11 @@ ZTEST(button_callback_tests, test_button_callback_multiple_calls)
  * This test verifies the callback handles the pins parameter
  * correctly (though in this case it may not use it).
  */
-void test_button_callback_with_pins(void)
+ZTEST(button_callback_tests, test_button_callback_with_pins)
 {
-    /* Setup: ensure clean state */
-    test_setup();
+    /* Ensure clean state */
+    k_event_clear(&button_events, BUTTON_EVENT);
+    LED_STATE = LED_OFF;
     
     /* Call with specific pin bit */
     button_test_callback(NULL, NULL, BIT(11));  /* Pin 11 as used in CI */
