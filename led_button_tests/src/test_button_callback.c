@@ -30,7 +30,7 @@
  * This function is called automatically by ztest before each test
  * function runs. We use it to ensure a clean state.
  */
-static void test_setup(void)
+static void test_before(void *fixture)
 {
     /* Initialize the event if not already initialized */
     k_event_init(&button_events);
@@ -68,7 +68,7 @@ void test_button_callback_posts_event(void)
     /* Give kernel a moment to process the event post */
     k_msleep(10);
     
-    /* Verify event IS set after callback */
+    /* Verify event is set after callback */
     uint32_t events_after = k_event_wait(&button_events, BUTTON_EVENT, 
                                          false, K_NO_WAIT);
     zassert_true(events_after & BUTTON_EVENT, 
@@ -81,10 +81,8 @@ void test_button_callback_posts_event(void)
  * This test verifies that the callback can handle multiple
  * invocations (simulating multiple button presses).
  */
-void test_button_callback_multiple_calls(void)
+ZTEST(button_callback_tests, test_button_callback_multiple_calls)
 {
-    /* Setup: ensure clean state */
-    test_setup();
     
     /* Call callback first time */
     button_test_callback(NULL, NULL, BIT(0));
@@ -116,7 +114,8 @@ void test_button_callback_multiple_calls(void)
  */
 void test_button_callback_with_pins(void)
 {
-    k_event_clear(&button_events, BUTTON_EVENT);
+    /* Setup: ensure clean state */
+    test_setup();
     
     /* Call with specific pin bit */
     button_test_callback(NULL, NULL, BIT(11));  /* Pin 11 as used in CI */
@@ -128,11 +127,5 @@ void test_button_callback_with_pins(void)
                  "Callback should post event regardless of pin value");
 }
 
-/* Register test suite with ztest - using simpler API */
-ztest_test_suite(button_callback_tests,
-                 ztest_unit_test(test_button_callback_posts_event),
-                 ztest_unit_test(test_button_callback_multiple_calls),
-                 ztest_unit_test(test_button_callback_with_pins)
-);
-
-/* ztest will automatically run all registered test suites */
+/* Register test suite with ztest - using new API */
+ZTEST_SUITE(button_callback_tests, NULL, NULL, test_before, NULL, NULL);
