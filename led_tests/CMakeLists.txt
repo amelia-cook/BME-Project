@@ -37,8 +37,8 @@ if(DEFINED BOARD AND BOARD STREQUAL "native_sim")
   include(${LED_DATA})
   
   configure_file(
-    ${CMAKE_SOURCE_DIR}/boards/native_sim.overlay.in
-    ${CMAKE_BINARY_DIR}/boards/native_sim.overlay
+    ${CMAKE_CURRENT_SOURCE_DIR}/boards/native_sim.overlay.in
+    ${CMAKE_CURRENT_SOURCE_DIR}/boards/native_sim.overlay
     @ONLY
   )
   
