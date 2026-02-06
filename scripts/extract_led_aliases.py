@@ -24,7 +24,7 @@ leds = leds[:4]
 
 # Fill remaining slots with unique dummy names
 for i in range(len(leds) + 1, 5):
-    leds.append(f"unused_led{i}")
+    leds.append(f"unused{i}")
 
 out = Path(sys.argv[2])
 with out.open("w") as f:
