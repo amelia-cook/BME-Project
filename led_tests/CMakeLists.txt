@@ -16,19 +16,23 @@ if(DEFINED BOARD AND BOARD STREQUAL "native_sim")
 
   find_package(Python3 REQUIRED COMPONENTS Interpreter)
   
-  set(INPUT_OVERLAY ${CMAKE_SOURCE_DIR}/boards/native_posix.overlay)
+  set(INPUT_OVERLAY ${CMAKE_CURRENT_SOURCE_DIR}/boards/native_posix.overlay)
   set(LED_DATA ${CMAKE_BINARY_DIR}/led_aliases.cmake)
   
-  add_custom_command(
-    OUTPUT ${LED_DATA}
-    COMMAND Python3::Interpreter
-      ${CMAKE_SOURCE_DIR}/../scripts/extract_led_aliases.py
+  execute_process(
+    COMMAND
+      ${Python3_EXECUTABLE}
+      ${CMAKE_CURRENT_SOURCE_DIR}/../scripts/extract_led_aliases.py
       ${INPUT_OVERLAY}
       ${LED_DATA}
-    DEPENDS ${INPUT_OVERLAY}
+    WORKING_DIRECTORY
+      ${CMAKE_CURRENT_SOURCE_DIR}
+    RESULT_VARIABLE OVERLAY_RESULT
   )
   
-  add_custom_target(extract_leds DEPENDS ${LED_DATA})
+  if(NOT OVERLAY_RESULT EQUAL 0)
+    message(FATAL_ERROR "Failed to generate native_sim overlay")
+  endif()
   
   include(${LED_DATA})
   
