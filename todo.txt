@@ -6,3 +6,8 @@ DONE:
 
 TODO:
 - be able to emulate gpio lab by friday due date 
+
+
+week of feb 9:
+sophie = write ztest for frequency 
+amelia = write ztest for led and scrapping alias 
