@@ -1,4 +1,8 @@
+DONE:
+- be able to emulate and test button press and callback on github
+    - using ztest 
+- be able to emulate and test led on and off 
+    - ci script 
+
 TODO:
-- test leds with script
-- build led w button presses
-- emulate ISR and test etc
+- be able to emulate gpio lab by friday due date 

@@ -130,3 +130,43 @@ ZTEST(button_callback_tests, test_button_callback_with_pins)
 
 /* Register test suite with ztest - using new API */
 ZTEST_SUITE(button_callback_tests, NULL, NULL, test_before, NULL, NULL);
+
+
+
+
+/*
+What you'd need to do:
+
+1. Use Zephyr's timing APIs - Functions like k_uptime_get() or k_cycle_get_32() to measure time between LED state changes
+Mock or intercept GPIO calls - Instead of letting the LED actually blink, you can:
+
+2. Use ztest's mocking capabilities (if available for your GPIO driver)
+Hook into the GPIO pin state changes
+Record timestamps when the LED state toggles
+
+3. Write test assertions - Use ztest's assertion macros like zassert_true(), zassert_within(), etc. to verify the blink frequency is within acceptable tolerances
+
+
+
+
+void test_led_blink_frequency(void) {
+    uint32_t start_time, end_time;
+    int toggle_count = 0;
+    
+    // Start the blinking task
+    start_blinking();
+    
+    start_time = k_uptime_get();
+    
+    // Monitor GPIO state changes for a period
+    // (you'd need hooks to detect toggles)
+    k_sleep(K_MSEC(1000));
+    
+    end_time = k_uptime_get();
+    
+    // Calculate frequency from toggle_count and time
+    float frequency = toggle_count / 2.0 / ((end_time - start_time) / 1000.0);
+    
+    zassert_within(frequency, 1.0, 0.1, "LED should blink at 1Hz");
+}
+*/
