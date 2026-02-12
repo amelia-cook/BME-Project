@@ -18,8 +18,6 @@
 /* External declarations - these symbols are defined in main.c */
 extern struct k_event button_events;
 extern int LED_STATE;
-extern struct gpio_dt_spec led_test;
-extern struct gpio_dt_spec button_test;
 extern int student_main(void);
 
 /* LED state macros (from main.c) */
@@ -33,5 +31,8 @@ extern int student_main(void);
 extern void button_test_callback(const struct device *dev, 
                                  struct gpio_callback *cb, 
                                  uint32_t pins);
+
+static const struct gpio_dt_spec led_test = GPIO_DT_SPEC_GET(DT_ALIAS(ledtest), gpios);
+static const struct gpio_dt_spec button_test = GPIO_DT_SPEC_GET(DT_ALIAS(buttontest), gpios);
 
 #endif /* TEST_BUTTON_CALLBACK_H */
