@@ -18,7 +18,7 @@
  *     timestamp.  This is sufficient for native_sim.
  *
  *  2. HARDWARE LAYER  – watch the physical GPIO pin via interrupt (real HW)
- *     A second GPIO alias "ledmonitor" is configured as an INPUT with edge
+ *     A second GPIO alias "ledtest" is configured as an INPUT with edge
  *     interrupts.  Each interrupt records a timestamp.  On native_sim this
  *     alias is wired to the same emulated pin as "ledtest", giving a true
  *     pin-level test.  See boards/ overlay notes below.
@@ -120,13 +120,13 @@ static void monitor_thread_entry(void *p1, void *p2, void *p3)
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
- * Hardware-layer edge recorder (GPIO interrupt on "ledmonitor" alias)
+ * Hardware-layer edge recorder (GPIO interrupt on "ledtest" alias)
  * ══════════════════════════════════════════════════════════════════════════ */
 
-#if DT_HAS_ALIAS(ledmonitor)
+#if DT_HAS_ALIAS(ledtest)
 
 static const struct gpio_dt_spec led_monitor_pin =
-    GPIO_DT_SPEC_GET(DT_ALIAS(ledmonitor), gpios);
+    GPIO_DT_SPEC_GET(DT_ALIAS(ledtest), gpios);
 
 static struct gpio_callback monitor_gpio_cb;
 
@@ -175,12 +175,12 @@ static int init_hw_monitor(void)
 }
 
 #else
-/* "ledmonitor" alias not present – HW layer disabled at compile time */
+/* "ledtest" alias not present – HW layer disabled at compile time */
 static bool hw_layer_available = false;
 static int64_t hw_edge_times_ms[MAX_EDGES];
 static int     hw_edge_count = 0;
 static int init_hw_monitor(void) { return -ENOTSUP; }
-#endif /* DT_HAS_ALIAS(ledmonitor) */
+#endif /* DT_HAS_ALIAS(ledtest) */
 
 /* ══════════════════════════════════════════════════════════════════════════
  * Helper: start a fresh student_main() run plus the monitor thread
@@ -426,7 +426,7 @@ ZTEST(led_blink_tests, test_led_ends_off)
  * populated by the GPIO interrupt callback instead of the polling monitor.
  * They verify the physical pin, not just the software variable.
  *
- * If the "ledmonitor" alias is absent (hw_layer_available == false) every
+ * If the "ledtest" alias is absent (hw_layer_available == false) every
  * hardware test prints a skip notice and passes unconditionally so the
  * overall suite is still green on native_sim without a loopback overlay.
  * ══════════════════════════════════════════════════════════════════════════ */
@@ -437,7 +437,7 @@ ZTEST(led_blink_tests, test_led_ends_off)
 ZTEST(led_blink_tests, test_pin_toggles_at_all)
 {
     if (!hw_layer_available) {
-        printk("[SKIP] ledmonitor alias not present – hardware test skipped.\n");
+        printk("[SKIP] ledtest alias not present – hardware test skipped.\n");
         ztest_test_skip();
         return;
     }
@@ -446,7 +446,7 @@ ZTEST(led_blink_tests, test_pin_toggles_at_all)
     wait_for_blink_to_finish();
 
     zassert_true(hw_edge_count > 0,
-                 "No GPIO interrupts detected on ledmonitor pin");
+                 "No GPIO interrupts detected on ledtest pin");
     printk("✓ Detected %d hardware-layer edge(s) on pin\n", hw_edge_count);
 }
 
@@ -456,7 +456,7 @@ ZTEST(led_blink_tests, test_pin_toggles_at_all)
 ZTEST(led_blink_tests, test_pin_toggle_count)
 {
     if (!hw_layer_available) {
-        printk("[SKIP] ledmonitor alias not present – hardware test skipped.\n");
+        printk("[SKIP] ledtest alias not present – hardware test skipped.\n");
         ztest_test_skip();
         return;
     }
@@ -484,7 +484,7 @@ ZTEST(led_blink_tests, test_pin_toggle_count)
 ZTEST(led_blink_tests, test_pin_half_period_timing)
 {
     if (!hw_layer_available) {
-        printk("[SKIP] ledmonitor alias not present – hardware test skipped.\n");
+        printk("[SKIP] ledtest alias not present – hardware test skipped.\n");
         ztest_test_skip();
         return;
     }
@@ -523,7 +523,7 @@ ZTEST(led_blink_tests, test_pin_half_period_timing)
 ZTEST(led_blink_tests, test_pin_total_duration)
 {
     if (!hw_layer_available) {
-        printk("[SKIP] ledmonitor alias not present – hardware test skipped.\n");
+        printk("[SKIP] ledtest alias not present – hardware test skipped.\n");
         ztest_test_skip();
         return;
     }
