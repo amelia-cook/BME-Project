@@ -45,7 +45,7 @@
 #include <zephyr/ztest.h>
 #include <zephyr/kernel.h>
 #include <zephyr/drivers/gpio.h>
-#include "test_led_blink.h"
+#include "test_freq_callback.h"
 
 /* ══════════════════════════════════════════════════════════════════════════
  * Compile-time knobs

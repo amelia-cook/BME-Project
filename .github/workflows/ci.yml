@@ -136,7 +136,7 @@ jobs:
             exit 1
           fi
 
-  led-blink-tests:
+  led-freq-tests:
     runs-on: ubuntu-latest
     container:
       image: hardwario/nrf-connect-sdk-build:v2.9.0-1
@@ -151,11 +151,11 @@ jobs:
       # convert — the overlay was written for native_sim from the start.
       - name: Confirm native_sim overlay exists
         run: |
-          cat led_blink_tests/boards/native_sim.overlay
+          cat led_freq_tests/boards/native_sim.overlay
 
       - name: West init
         run: |
-          cd led_blink_tests
+          cd led_freq_tests
           west init
           west update -o=--depth=1 -n
 
@@ -163,7 +163,7 @@ jobs:
       # Verifies the student code compiles cleanly before running any tests.
       - name: Build application for native_sim (student code)
         run: |
-          cd led_blink_tests
+          cd led_freq_tests
           west build -b native_sim -- \
             -DDTC_OVERLAY_FILE=boards/native_sim.overlay
 
@@ -173,7 +173,7 @@ jobs:
       # A separate build directory is used so the app build above is preserved.
       - name: Build tests for native_sim
         run: |
-          cd led_blink_tests
+          cd led_freq_tests
           west build -b native_sim --build-dir=build_test -- \
             -DDTC_OVERLAY_FILE=boards/native_sim.overlay \
             -DTEST_BUILD=ON
@@ -187,7 +187,7 @@ jobs:
       # (ztest returns 1 on failure; we check the log content in the next step).
       - name: Run unit tests
         run: |
-          cd led_blink_tests
+          cd led_freq_tests
           chmod +x build_test/zephyr/zephyr.exe
           timeout 30s stdbuf -oL build_test/zephyr/zephyr.exe | tee test_output.log || true
 
@@ -199,7 +199,7 @@ jobs:
       # assertion failed and what the measured vs expected values were.
       - name: Check test results
         run: |
-          cd led_blink_tests
+          cd led_freq_tests
           if grep -q "PROJECT EXECUTION SUCCESSFUL" test_output.log; then
             echo "✅ All LED blink tests passed!"
             exit 0
@@ -221,5 +221,5 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: led-blink-test-output
-          path: led_blink_tests/test_output.log
+          name: led-freq-test-output
+          path: led_freq_tests/test_output.log
