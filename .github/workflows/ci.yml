@@ -145,13 +145,27 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # The led_blink_tests folder already contains boards/native_sim.overlay
-      # which points ledtest at the emulated GPIO pin.  No generate_overlay.py
-      # script is needed because there is no legacy native_posix.overlay to
-      # convert — the overlay was written for native_sim from the start.
-      - name: Confirm native_sim overlay exists
+      - name: Generate temporary native_sim overlay
         run: |
-          cat led_freq_tests/boards/native_sim.overlay
+          NATIVE_OVERLAY="led_freq_tests/native_sim.overlay"
+          python3 scripts/generate_overlay.py \
+            led_freq_tests/boards/native_posix.overlay \
+            $NATIVE_OVERLAY
+          cat led_freq_tests/native_sim.overlay
+
+      - name: Create native_sim CI config
+        run: |
+          cd led_freq_tests
+          cat <<'EOF' > ci_native_sim.conf
+          CONFIG_INPUT=y
+          CONFIG_INPUT_GPIO_KEYS=y
+          CONFIG_LOG=y
+          CONFIG_LOG_MODE_IMMEDIATE=y
+          CONFIG_LOG_MODE_DEFERRED=n
+          CONFIG_LOG_BUFFER_SIZE=0
+          CONFIG_LOG_DEFAULT_LEVEL=4
+          EOF
+          cat ci_native_sim.conf
 
       - name: West init
         run: |
@@ -159,52 +173,35 @@ jobs:
           west init
           west update -o=--depth=1 -n
 
-      # ── Normal application build ─────────────────────────────────────────
-      # Verifies the student code compiles cleanly before running any tests.
       - name: Build application for native_sim (student code)
         run: |
           cd led_freq_tests
           west build -b native_sim -- \
-            -DDTC_OVERLAY_FILE=boards/native_sim.overlay
+            -DDTC_OVERLAY_FILE=native_sim.overlay \
+            -DEXTRA_CONF_FILE=ci_native_sim.conf
 
-      # ── Test build ───────────────────────────────────────────────────────
-      # TEST_BUILD=ON triggers the CMake wrapper that renames main() to
-      # student_main() and compiles test_led_blink.c instead of main.c alone.
-      # A separate build directory is used so the app build above is preserved.
       - name: Build tests for native_sim
         run: |
           cd led_freq_tests
           west build -b native_sim --build-dir=build_test -- \
-            -DDTC_OVERLAY_FILE=boards/native_sim.overlay \
+            -DDTC_OVERLAY_FILE=native_sim.overlay \
+            -DEXTRA_CONF_FILE=test.prj.conf \
             -DTEST_BUILD=ON
 
-      # ── Run tests ────────────────────────────────────────────────────────
-      # The blink sequence runs for 5 seconds so we allow up to 30 seconds
-      # total (5s blink + ztest overhead + native_sim startup).
-      # stdbuf -oL forces line-buffered stdout so output appears in the log
-      # in real time rather than being held in a buffer until the process ends.
-      # '|| true' prevents the step from failing if zephyr.exe returns non-zero
-      # (ztest returns 1 on failure; we check the log content in the next step).
       - name: Run unit tests
         run: |
           cd led_freq_tests
           chmod +x build_test/zephyr/zephyr.exe
-          timeout 30s stdbuf -oL build_test/zephyr/zephyr.exe | tee test_output.log || true
-
-      # ── Check results ────────────────────────────────────────────────────
-      # ztest prints one of these two strings as its final line:
-      #   "PROJECT EXECUTION SUCCESSFUL"  → all tests passed
-      #   "PROJECT EXECUTION FAILED"      → one or more tests failed
-      # We also dump the full log on failure so the student can see which
-      # assertion failed and what the measured vs expected values were.
+          timeout 10s stdbuf -oL build_test/zephyr/zephyr.exe | tee test_output.log || true
+          
       - name: Check test results
         run: |
           cd led_freq_tests
           if grep -q "PROJECT EXECUTION SUCCESSFUL" test_output.log; then
-            echo "✅ All LED blink tests passed!"
+            echo "✅ All tests passed!"
             exit 0
           elif grep -q "PROJECT EXECUTION FAILED" test_output.log; then
-            echo "❌ LED blink tests failed!"
+            echo "❌ Tests failed!"
             cat test_output.log
             exit 1
           else
@@ -213,13 +210,90 @@ jobs:
             exit 1
           fi
 
-      # ── Upload test log as artifact ──────────────────────────────────────
-      # Saves the full test output so it can be downloaded from the GitHub
-      # Actions run page even after the job finishes.  Useful when a student
-      # wants to see timing numbers without re-running locally.
-      - name: Upload test log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: led-freq-test-output
-          path: led_freq_tests/test_output.log
+  # led-freq-tests:
+  #   runs-on: ubuntu-latest
+  #   container:
+  #     image: hardwario/nrf-connect-sdk-build:v2.9.0-1
+
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v4
+
+  #     # The led_blink_tests folder already contains boards/native_sim.overlay
+  #     # which points ledtest at the emulated GPIO pin.  No generate_overlay.py
+  #     # script is needed because there is no legacy native_posix.overlay to
+  #     # convert — the overlay was written for native_sim from the start.
+  #     - name: Confirm native_sim overlay exists
+  #       run: |
+  #         cat led_freq_tests/boards/native_sim.overlay
+
+  #     - name: West init
+  #       run: |
+  #         cd led_freq_tests
+  #         west init
+  #         west update -o=--depth=1 -n
+
+  #     # ── Normal application build ─────────────────────────────────────────
+  #     # Verifies the student code compiles cleanly before running any tests.
+  #     - name: Build application for native_sim (student code)
+  #       run: |
+  #         cd led_freq_tests
+  #         west build -b native_sim -- \
+  #           -DDTC_OVERLAY_FILE=boards/native_sim.overlay
+
+  #     # ── Test build ───────────────────────────────────────────────────────
+  #     # TEST_BUILD=ON triggers the CMake wrapper that renames main() to
+  #     # student_main() and compiles test_led_blink.c instead of main.c alone.
+  #     # A separate build directory is used so the app build above is preserved.
+  #     - name: Build tests for native_sim
+  #       run: |
+  #         cd led_freq_tests
+  #         west build -b native_sim --build-dir=build_test -- \
+  #           -DDTC_OVERLAY_FILE=boards/native_sim.overlay \
+  #           -DTEST_BUILD=ON
+
+  #     # ── Run tests ────────────────────────────────────────────────────────
+  #     # The blink sequence runs for 5 seconds so we allow up to 30 seconds
+  #     # total (5s blink + ztest overhead + native_sim startup).
+  #     # stdbuf -oL forces line-buffered stdout so output appears in the log
+  #     # in real time rather than being held in a buffer until the process ends.
+  #     # '|| true' prevents the step from failing if zephyr.exe returns non-zero
+  #     # (ztest returns 1 on failure; we check the log content in the next step).
+  #     - name: Run unit tests
+  #       run: |
+  #         cd led_freq_tests
+  #         chmod +x build_test/zephyr/zephyr.exe
+  #         timeout 30s stdbuf -oL build_test/zephyr/zephyr.exe | tee test_output.log || true
+
+  #     # ── Check results ────────────────────────────────────────────────────
+  #     # ztest prints one of these two strings as its final line:
+  #     #   "PROJECT EXECUTION SUCCESSFUL"  → all tests passed
+  #     #   "PROJECT EXECUTION FAILED"      → one or more tests failed
+  #     # We also dump the full log on failure so the student can see which
+  #     # assertion failed and what the measured vs expected values were.
+  #     - name: Check test results
+  #       run: |
+  #         cd led_freq_tests
+  #         if grep -q "PROJECT EXECUTION SUCCESSFUL" test_output.log; then
+  #           echo "✅ All LED blink tests passed!"
+  #           exit 0
+  #         elif grep -q "PROJECT EXECUTION FAILED" test_output.log; then
+  #           echo "❌ LED blink tests failed!"
+  #           cat test_output.log
+  #           exit 1
+  #         else
+  #           echo "⚠️  Could not determine test status"
+  #           cat test_output.log
+  #           exit 1
+  #         fi
+
+  #     # ── Upload test log as artifact ──────────────────────────────────────
+  #     # Saves the full test output so it can be downloaded from the GitHub
+  #     # Actions run page even after the job finishes.  Useful when a student
+  #     # wants to see timing numbers without re-running locally.
+  #     - name: Upload test log
+  #       if: always()
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: led-freq-test-output
+  #         path: led_freq_tests/test_output.log
