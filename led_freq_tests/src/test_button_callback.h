@@ -31,16 +31,6 @@ extern const struct gpio_dt_spec led_test;
 #define BLINK_INTERVAL_MS  500   /* expected half-period                     */
 #define BLINK_DURATION_MS  5000  /* expected total blink window              */
 
-/*
- * Derived values used by the test suite
- *
- * Full period = 2 × half-period.
- * Expected toggles = (BLINK_DURATION_MS / BLINK_INTERVAL_MS).
- *   e.g. 5000 / 500 = 10 toggles (ON, OFF, ON, OFF … × 5)
- *
- * Timing tolerance: ±10 % of the half-period is acceptable given kernel
- * scheduling jitter in native_sim and on real hardware.
- */
 #define BLINK_PERIOD_MS        (BLINK_INTERVAL_MS * 2)
 #define EXPECTED_TOGGLES       (BLINK_DURATION_MS / BLINK_INTERVAL_MS)
 #define TIMING_TOLERANCE_MS    (BLINK_INTERVAL_MS / 10)  /* 10 % */

@@ -24,25 +24,6 @@
  *     pin-level test.  See boards/ overlay notes below.
  *
  * ═══════════════════════════════════════════════════════════════════════════
- * Board overlay notes
- * ═══════════════════════════════════════════════════════════════════════════
- *
- * For native_sim add to boards/native_sim.overlay (or native_sim_64.overlay):
- *
- *   / {
- *       aliases {
- *           ledtest     = &gpio_emu_led;
- *           ledmonitor  = &gpio_emu_led;   // same pin → loopback
- *       };
- *   };
- *
- * For real hardware (e.g. nRF52840 DK) wire a jumper from the LED pin to an
- * unused GPIO input pin and map that pin to the "ledmonitor" alias.
- *
- * If "ledmonitor" is not available in your overlay the hardware-layer tests
- * are automatically skipped; the software-layer tests still run.
- *
- * ═══════════════════════════════════════════════════════════════════════════
  * Test list
  * ═══════════════════════════════════════════════════════════════════════════
  *
@@ -95,7 +76,7 @@ extern int student_main(void);
 
 static void student_main_thread_entry(void *p1, void *p2, void *p3)
 {
-    ARG_UNUSED(p1); ARG_UNUSED(p2); ARG_UNUSED(p3);
+    // ARG_UNUSED(p1); ARG_UNUSED(p2); ARG_UNUSED(p3);
     main_is_running = true;
     student_main();
     main_is_running = false;
@@ -120,7 +101,7 @@ static volatile bool   monitor_running = false;
 
 static void monitor_thread_entry(void *p1, void *p2, void *p3)
 {
-    ARG_UNUSED(p1); ARG_UNUSED(p2); ARG_UNUSED(p3);
+    // ARG_UNUSED(p1); ARG_UNUSED(p2); ARG_UNUSED(p3);
 
     int last_state = LED_STATE;
     monitor_running = true;
@@ -156,7 +137,7 @@ static void gpio_monitor_callback(const struct device *dev,
                                   struct gpio_callback *cb,
                                   uint32_t pins)
 {
-    ARG_UNUSED(dev); ARG_UNUSED(cb); ARG_UNUSED(pins);
+    // ARG_UNUSED(dev); ARG_UNUSED(cb); ARG_UNUSED(pins);
     if (hw_edge_count < MAX_EDGES) {
         hw_edge_times_ms[hw_edge_count++] = k_uptime_get();
     }
@@ -253,7 +234,7 @@ static void wait_for_blink_to_finish(void)
 
 static void test_before(void *fixture)
 {
-    ARG_UNUSED(fixture);
+    // ARG_UNUSED(fixture);
 
     /* Kill any leftover threads from a previous test */
     if (main_is_running) {
@@ -270,7 +251,7 @@ static void test_before(void *fixture)
 
 static void test_after(void *fixture)
 {
-    ARG_UNUSED(fixture);
+    // ARG_UNUSED(fixture);
 
     if (main_is_running) {
         k_thread_abort(student_main_tid);
