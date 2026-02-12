@@ -151,7 +151,7 @@ ZTEST(button_callback_tests, test_button_press_triggers_main_led_toggle)
                 K_THREAD_STACK_SIZEOF(main_stack),
                 main_thread_entry,
                 NULL, NULL, NULL,
-                5, 0, 0);
+                5, 0, K_NO_WAIT);
 
     /* Let main initialize and block on k_event_wait */
     k_msleep(100);
