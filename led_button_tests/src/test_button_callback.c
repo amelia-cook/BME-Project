@@ -134,8 +134,11 @@ ZTEST(button_callback_tests, test_button_callback_with_pins)
 
 static void main_thread_entry(void *p1, void *p2, void *p3)
 {
-    main();
+    student_main();
 }
+
+K_THREAD_STACK_DEFINE(main_stack, 2048);
+static struct k_thread main_thread;
 
 ZTEST(button_callback_tests, test_button_press_triggers_main_led_toggle)
 {
@@ -143,7 +146,12 @@ ZTEST(button_callback_tests, test_button_press_triggers_main_led_toggle)
     int led_pin = led_test.pin;
 
     /* Start student main in separate thread */
-    K_THREAD_DEFINE(main_thread_id, 1024, main_thread_entry, NULL, NULL, NULL, 5, 0, 0);
+    k_thread_create(&main_thread,
+                main_stack,
+                K_THREAD_STACK_SIZEOF(main_stack),
+                main_thread_entry,
+                NULL, NULL, NULL,
+                5, 0, 0);
 
     /* Let main initialize and block on k_event_wait */
     k_msleep(100);
