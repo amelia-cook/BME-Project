@@ -100,6 +100,8 @@ int main(void)
             LOG_INF("Button ON pressed, LED ON\n");
         }
     }
+    
+    k_msleep(100);
 
     LOG_INF("exiting code");
     return 0;
