@@ -22,6 +22,7 @@
 #include <zephyr/ztest.h>
 #include <zephyr/kernel.h>
 #include <zephyr/drivers/gpio.h>
+#include <zephyr/drivers/gpio/gpio_emul.h>
 #include "test_button_callback.h"
 
 /**
@@ -127,6 +128,69 @@ ZTEST(button_callback_tests, test_button_callback_with_pins)
     zassert_true(events & BUTTON_EVENT, 
                  "Callback should post event regardless of pin value");
 }
+
+
+
+
+static void main_thread_entry(void *p1, void *p2, void *p3)
+{
+    main();
+}
+
+ZTEST(button_callback_tests, test_button_press_triggers_main_led_toggle)
+{
+    const struct device *led_port = led_test.port;
+    int led_pin = led_test.pin;
+
+    /* Start student main in separate thread */
+    K_THREAD_DEFINE(main_thread_id, 1024, main_thread_entry, NULL, NULL, NULL, 5, 0, 0);
+
+    /* Let main initialize and block on k_event_wait */
+    k_msleep(100);
+
+    /* Verify LED starts OFF */
+    zassert_equal(
+        gpio_emul_output_get(led_port, led_pin),
+        LED_OFF,
+        "LED should start OFF"
+    );
+
+    /* Simulate button press (this triggers ISR and callback) */
+    gpio_emul_input_set(button_test.port,
+                        button_test.pin,
+                        1);
+
+    /* Allow time for interrupt + event + main logic */
+    k_msleep(100);
+
+    /* Now check if main toggled LED */
+    zassert_equal(
+        gpio_emul_output_get(led_port, led_pin),
+        LED_ON,
+        "LED should be ON after button press"
+    );
+    
+    /* Simulate button press (this triggers ISR and callback) */
+    gpio_emul_input_set(button_test.port,
+                        button_test.pin,
+                        1);
+    
+    /* Allow time for interrupt + event + main logic */
+    k_msleep(100);
+    
+    /* Now check if main toggled LED */
+    zassert_equal(
+        gpio_emul_output_get(led_port, led_pin),
+        LED_OFF,
+        "LED should be OFF after second button press"
+    );
+}
+
+
+
+
+
+
 
 /* Register test suite with ztest - using new API */
 ZTEST_SUITE(button_callback_tests, NULL, NULL, test_before, NULL, NULL);

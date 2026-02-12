@@ -18,6 +18,9 @@
 /* External declarations - these symbols are defined in main.c */
 extern struct k_event button_events;
 extern int LED_STATE;
+extern struct gpio_dt_spec led_test;
+extern struct gpio_dt_spec button_test;
+extern int student_main(void);
 
 /* LED state macros (from main.c) */
 #define LED_ON 1
