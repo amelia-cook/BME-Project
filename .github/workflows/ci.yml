@@ -5,7 +5,6 @@ on:
   pull_request:
 
 jobs:
-  gpio_tests:
     runs-on: ubuntu-latest
     container:
       image: hardwario/nrf-connect-sdk-build:v2.9.0-1
@@ -13,10 +12,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      
-      # - name: Install dependencies
-      #   run: |
-      #     apt-get install -y clang-format
       
       - name: West init
         run: |
@@ -28,14 +23,6 @@ jobs:
         run: |
           cd gpio_lab
           west build -b native_sim
-      
-      - name: native_sim.overlay sanity check
-        run: |
-          cd gpio_lab
-          cat boards/native_sim.overlay
-      # build tests
-      # run tests
-
 
 
 
