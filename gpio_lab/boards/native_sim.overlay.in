@@ -1,0 +1,32 @@
+/ {
+    aliases {
+        @LED1@ = &sim_ledtest1;
+        @LED2@ = &sim_ledtest2;
+        @LED3@ = &sim_ledtest3;
+        @LED4@ = &sim_ledtest4;
+    };
+
+    sim_leds {
+        compatible = "gpio-leds";
+        sim_ledtest1: led_10 {
+            gpios = <&gpio0 10 GPIO_ACTIVE_HIGH>;
+            label = "SIM_LEDTEST";
+        };
+        sim_ledtest2: led_11 {
+            gpios = <&gpio0 11 GPIO_ACTIVE_HIGH>;
+            label = "SIM_LEDTEST";
+        };
+        sim_ledtest3: led_12 {
+            gpios = <&gpio0 12 GPIO_ACTIVE_HIGH>;
+            label = "SIM_LEDTEST";
+        };
+        sim_ledtest4: led_13 {
+            gpios = <&gpio0 13 GPIO_ACTIVE_HIGH>;
+            label = "SIM_LEDTEST";
+        };
+    };
+};
+
+&gpio0 {
+    status = "okay";
+};
