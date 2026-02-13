@@ -5,6 +5,7 @@ on:
   pull_request:
 
 jobs:
+  gpio_tests:
     runs-on: ubuntu-latest
     container:
       image: hardwario/nrf-connect-sdk-build:v2.9.0-1
