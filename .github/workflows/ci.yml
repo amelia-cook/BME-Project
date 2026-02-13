@@ -14,9 +14,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
       
-      - name: Install dependencies
-        run: |
-          apt-get install -y clang-format
+      # - name: Install dependencies
+      #   run: |
+      #     apt-get install -y clang-format
       
       - name: West init
         run: |
@@ -26,9 +26,13 @@ jobs:
       
       - name: Build for native_sim
         run: |
-          cd led_tests
+          cd gpio_lab
           west build -b native_sim
       
+      - name: native_sim.overlay sanity check
+        run: |
+          cd gpio_lab
+          cat boards/native_sim.overlay
       # build tests
       # run tests
 
