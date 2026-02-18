@@ -14,7 +14,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
       
-      - name: SANITY CHECK: Generate temporary native_sim overlay
+      - name: SANITY CHECK Generate temporary native_sim overlay
         run: |
           cd gpio_lab
           python3 ../scripts/generate_overlay.py \
