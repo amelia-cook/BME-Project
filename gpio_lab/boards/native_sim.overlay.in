@@ -52,7 +52,7 @@
             label = "SIM_buttontest4";
             zephyr,code = <1>; /* KEY_ESC */
         };
-    }
+    };
 };
 
 &gpio0 {
