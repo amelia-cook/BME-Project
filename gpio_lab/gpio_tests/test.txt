@@ -1,0 +1,86 @@
+** switch case statement
+
+- heartbeat LED blinks at a fixed 1 Hz while main() is being executed. 
+    - Issue a LOG_INF() statement each time the heartbeat LED is toggled.
+
+test 1:
+in init state ...
+  - check that gpio0 interface is ready
+  - check that all led output pins are initialized 
+
+test 2:
+check transition to default state
+
+test 3:
+in default state ...
+  - check that buzzer_led and iv_pump_led are blinking out of phase with one another at 2 Hz
+  - check heartbeat led blinking at 1 Hz
+  - check that the error led is off
+
+test 4:
+check transition to blink state
+
+test 5:
+in blink state, decrement action led by 1 hz (press freq down button)
+  - check the action led blink frequency is 1 hz 
+  - check heartbeat led blinking at 1 Hz
+  - check action leds blinking out of phase 
+
+test 6:
+in blink state, decrement action led by 1 hz (press freq down button)
+  - check that we transition to error state 
+  - error led should be one
+  - action led should be off
+  - heartbeat LED should be at 1 hz 
+
+test 7:
+in error state press reset button
+  - check transtion to default state 
+
+test 8:
+in blink state, increment action led by 1 hz (press freq up button)
+  - check action led freq = 3 hz
+  - check heartbeat led blinking at 1 Hz
+  - check action leds blinking out of phase 
+
+test 9:
+in blink state, increment action led by 1 hz (press freq up button)
+  - check action led freq = 4 hz
+  - check heartbeat led blinking at 1 Hz
+  - check action leds blinking out of phase 
+
+test 10:
+in blink state, increment action led by 1 hz (press freq up button)
+  - check action led freq = 5 hz
+  - check heartbeat led blinking at 1 Hz
+  - check action leds blinking out of phase 
+
+test 11:
+in blink state, increment action led by 1 hz (press freq up button)
+  - check that we transition to error state 
+  - error led should be one
+  - action led should be off
+  - heartbeat LED should be at 1 hz 
+
+test 12:
+in error state press reset button
+  - check transtion to default state 
+
+test 13:
+in blink state, press sleep button
+  - check transition to sleep state 
+
+test 14:
+in sleep state ...
+  - check that blink freq is saved
+  - action led off
+  - heartbeat led on at 1 hz
+  - error led off 
+
+test 15:
+in sleep state, press sleep button 
+  - check transition to blink state 
+
+test 16:
+in blink state, press sleep button to go back to sleep state, 
+  - then press reset button and check transtion to reset state 
