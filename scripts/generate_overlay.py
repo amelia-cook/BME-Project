@@ -4,12 +4,19 @@ import re
 import sys
 from pathlib import Path
 
-if len(sys.argv) != 3:
-    print("Usage: generate_overlay.py <student_overlay> <output_overlay>")
+if len(sys.argv) != 2:
+    print("Usage: generate_overlay.py <student_overlay>")
     sys.exit(1)
 
-student_overlay = Path(sys.argv[1])
-output_overlay = Path(sys.argv[2])
+student_overlay = Path(sys.argv[1]).resolve()
+
+# -------------------------------------------------
+# Always output to boards/native_sim.overlay
+# -------------------------------------------------
+app_root = Path.cwd()
+output_overlay = app_root / "boards" / "native_sim.overlay"
+
+output_overlay.parent.mkdir(parents=True, exist_ok=True)
 
 text = student_overlay.read_text()
 
@@ -106,6 +113,7 @@ lines.append("};")
 
 output_overlay.write_text("\n".join(lines))
 
-print("Generated native_sim overlay")
+print("Generated native_sim overlay:")
+print(f"  {output_overlay}")
 print(f"  LEDs: {', '.join(led_aliases) or 'none'}")
 print(f"  Buttons: {', '.join(button_aliases) or 'none'}")
