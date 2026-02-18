@@ -14,10 +14,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
       
-      - name: SANITY CHECK python version
-        run: |
-          python3 --version
-      
       - name: West init
         run: |
           cd gpio_lab

@@ -4,6 +4,10 @@
         @LED2@ = &sim_ledtest2;
         @LED3@ = &sim_ledtest3;
         @LED4@ = &sim_ledtest4;
+        @BUTTON1@ = &sim_buttontest1;
+        @BUTTON2@ = &sim_buttontest2;
+        @BUTTON3@ = &sim_buttontest3;
+        @BUTTON4@ = &sim_buttontest4;
     };
 
     sim_leds {
@@ -25,6 +29,30 @@
             label = "SIM_LEDTEST";
         };
     };
+    
+    sim_keys {
+        compatible = "gpio-keys";
+        sim_buttontest1: key_14 {
+            gpios = <&gpio0 14 GPIO_ACTIVE_HIGH>;
+            label = "sim_buttontest1";
+            zephyr,code = <1>; /* KEY_ESC */
+        };
+        sim_buttontest2: key_15 {
+            gpios = <&gpio0 15 GPIO_ACTIVE_HIGH>;
+            label = "SIM_buttontest2";
+            zephyr,code = <1>; /* KEY_ESC */
+        };
+        sim_buttontest3: key_16 {
+            gpios = <&gpio0 16 GPIO_ACTIVE_HIGH>;
+            label = "SIM_buttontest3";
+            zephyr,code = <1>; /* KEY_ESC */
+        };
+        sim_buttontest4: key_17 {
+            gpios = <&gpio0 17 GPIO_ACTIVE_HIGH>;
+            label = "SIM_buttontest4";
+            zephyr,code = <1>; /* KEY_ESC */
+        };
+    }
 };
 
 &gpio0 {
