@@ -1,0 +1,21 @@
+{
+    "version": 2,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 20
+    },
+    "configurePresets": [
+        {
+            "name": "build",
+            "displayName": "Build for nRF52833DK",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build",
+            "cacheVariables": {
+                "NCS_TOOLCHAIN_VERSION": "NONE",
+                "BOARD": "nrf52833dk/nrf52833",
+                "DTC_OVERLAY_FILE": "${sourceDir}/boards/nrf52833dk_nrf52833.overlay", 
+                "CONF_FILE": "${sourceDir}/prj.conf"
+            }
+        }
+    ]
+}

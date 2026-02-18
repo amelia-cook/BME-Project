@@ -1,0 +1,12 @@
+@startuml
+
+[*] -> example_state
+
+state example_state {
+    example_state_entry -> example_state_run
+    example_state_run : Do Stuff
+    example_state_run -> example_state_exit : Event Trigger
+    example_state_exit : Do Exit Stuff
+}
+
+@enduml

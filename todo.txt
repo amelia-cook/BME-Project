@@ -11,3 +11,9 @@ TODO:
 week of feb 9:
 sophie = write ztest for frequency 
 amelia = write ztest for led and scrapping alias 
+
+
+notes:
+k_poll - one to one, one thing can only set and one can only set it 
+gpio toggle tiggers a poll signal 
+-- need to check if it will change the student code 

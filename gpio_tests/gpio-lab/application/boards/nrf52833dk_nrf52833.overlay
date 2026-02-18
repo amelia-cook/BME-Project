@@ -1,0 +1,55 @@
+/ {
+	aliases {
+        // add your aliases here; examples:
+                heartbeat = &led0;  // this corresponds to LED1 on the board
+                ivpump = &led1;
+                buzzer = &led2;
+                error = &led3;
+
+                sleepbutton = &button0;  // this corresponds to SW1 on the board
+                frequpbutton = &button1;
+                freqdownbutton = &button2;
+                resetbutton = &button3;
+	};
+
+        buttons {
+                compatible = "gpio-keys";
+                sleepbutton: button_0 {
+                gpios = <&gpio0 11 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+                label = "Push button";
+                };
+                frequpbutton: button_1 {
+                gpios = <&gpio0 12 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+                label = "Frequency Up button";
+                };
+                freqdownbutton: button_2 {
+                gpios = <&gpio0 24 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+                label = "Frequency Down button";    
+                };
+
+                resetbutton: button_3 {
+                gpios = <&gpio0 25 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+                label = "Reset button";
+                };
+        };
+
+        leds {
+                compatible = "gpio-leds";
+                heartbeat: led_0 {
+                gpios = <&gpio0 13 GPIO_ACTIVE_LOW>;
+                label = "Heartbeat LED";
+                };
+                ivpump: led_1 {
+                gpios = <&gpio0 14 GPIO_ACTIVE_LOW>;
+                label = "IV Pump LED";
+                };
+                buzzer: led_2 {
+                gpios = <&gpio0 15 GPIO_ACTIVE_LOW>;
+                label = "Buzzer LED";
+                };
+                error: led_3 {
+                gpios = <&gpio0 16 GPIO_ACTIVE_LOW>;
+                label = "Error LED";
+                };
+        };
+};

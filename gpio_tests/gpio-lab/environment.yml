@@ -1,0 +1,12 @@
+name: bme554
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - jupyter
+  - matplotlib
+  - numpy
+  - pandas
+  - pytest
+  - scipy
+  - seaborn
