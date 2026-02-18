@@ -1,13 +1,6 @@
-DONE:
-- be able to emulate and test button press and callback on github
-    - using ztest 
-- be able to emulate and test led on and off 
-    - ci script 
+amelia:
+- fix pipeline!!
 
-TODO:
-- be able to emulate gpio lab by friday due date 
-
-
-week of feb 9:
-sophie = write ztest for frequency 
-amelia = write ztest for led and scrapping alias 
+sophie:
+- fix test structure
+- write tests
