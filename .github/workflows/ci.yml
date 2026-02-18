@@ -19,7 +19,7 @@ jobs:
           cd gpio_lab
           python3 ../scripts/generate_overlay.py \
             boards/native_posix.overlay
-          cat gpio_lab/boards/native_sim.overlay
+          cat boards/native_sim.overlay
       
       - name: West init
         run: |
