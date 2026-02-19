@@ -1,0 +1,263 @@
+Test 1: INIT State – GPIO and LED Initialization
+Starting State: INIT
+Trigger: Entry (first loop iteration)
+
+Checks:
+•	gpio0 interface is ready (device_is_ready returns true)
+•	All 4 button pins configured as GPIO_INPUT
+•	Interrupt callbacks registered for all 4 buttons
+•	heartbeat_led and iv_pump_led configured as GPIO_OUTPUT_ACTIVE
+•	buzzer_led and error_led configured as GPIO_OUTPUT_INACTIVE
+•	next_state transitions to BLINKING_RUN (skips BLINKING_ENTRY)
+
+Mocks/Setup: Mock gpio_pin_configure_dt, gpio_pin_interrupt_configure_dt, device_is_ready
+Notes: Verify INIT skips BLINKING_ENTRY and jumps directly to BLINKING_RUN
+
+
+Test 2: INIT → BLINKING_RUN Transition
+Starting State: INIT
+Trigger: End of INIT case
+
+Checks:
+•	next_state == BLINKING_RUN after INIT case executes
+•	state is updated to BLINKING_RUN at end of loop (state = next_state)
+•	No BLINKING_ENTRY case is visited
+
+Mocks/Setup: Standard GPIO mocks from Test 1
+Notes: INIT deliberately sets next_state = BLINKING_RUN to skip BLINKING_ENTRY
+
+
+Test 3: BLINKING_RUN – Default Blink Behavior at 2 Hz
+Starting State: BLINKING_RUN
+Trigger: Normal operation, no button presses
+
+Checks:
+•	heartbeat_led toggles every 500 ms (1 Hz)
+•	LOG_INF issued each time heartbeat_led toggles
+•	iv_pump_led and buzzer_led toggle every 250 ms (2 Hz)
+•	iv_pump_led and buzzer_led are out of phase (one ON while other OFF)
+•	error_led remains OFF
+•	action_led_hz == LED_BLINK_FREQ_HZ (2)
+
+Mocks/Setup: Mock gpio_pin_toggle_dt, k_uptime_get (advance simulated time)
+Notes: Toggle interval = MS_PER_HZ / (action_led_hz * 2) = 1000/(2*2) = 250 ms
+
+
+Test 4: BLINKING_ENTRY → BLINKING_RUN Transition
+Starting State: BLINKING_ENTRY
+Trigger: Arriving from RESET or SLEEP
+
+Checks:
+•	heartbeat() called successfully
+•	Button interrupts re-enabled for sleep, freq_up, freq_down
+•	iv_pump_led set to saved iv_pump_led_status.illuminated value
+•	buzzer_led set to inverse of iv_pump_led_status.illuminated
+•	error_led set to 0
+•	next_state == BLINKING_RUN after BLINKING_ENTRY
+
+Mocks/Setup: Mock GPIO set functions, simulate entry from RESET
+Notes: BLINKING_ENTRY restores LED polarity and re-enables interrupts
+
+
+Test 5: BLINKING_RUN – Freq Down Button: 2 Hz → 1 Hz
+Starting State: BLINKING_RUN
+Trigger: freq_down_button_callback fires once
+
+Checks:
+•	action_led_hz decremented from 2 to 1
+•	LOG_INF emitted: 'Freq Down button pressed, frequency is 1'
+•	iv_pump_led and buzzer_led toggle every 500 ms (1 Hz)
+•	heartbeat_led still toggling at 1 Hz (500 ms interval)
+•	iv_pump_led and buzzer_led remain out of phase
+•	state stays BLINKING_RUN
+
+Mocks/Setup: Set down_button_event = true before loop iteration
+Notes: Toggle interval at 1 Hz = 1000/(1*2) = 500 ms
+
+
+Test 6: BLINKING_RUN – Freq Down at Min Triggers ERROR
+Starting State: BLINKING_RUN
+Trigger: freq_down_button_callback fires when action_led_hz == 1
+
+Checks:
+•	action_led_hz drops to 0 (below MIN_FREQ_HZ)
+•	LOG_ERR: 'Action freq out of range 1-5: 0'
+•	next_state transitions to ERROR
+•	In ERROR state: error_led ON, iv_pump_led OFF, buzzer_led OFF
+•	heartbeat_led continues toggling at 1 Hz
+•	freq_up/freq_down/sleep interrupts disabled in ERROR
+
+Mocks/Setup: Pre-set action_led_hz = 1, fire down_button_event
+Notes: Out-of-range check runs after button event handling
+
+
+Test 7: ERROR State – Reset Button Transitions to BLINKING_ENTRY
+Starting State: ERROR
+Trigger: reset_button_callback fires
+
+Checks:
+•	reset_button_event == true triggers next_state = RESET
+•	In RESET: action_led_hz reset to LED_BLINK_FREQ_HZ (2)
+•	LOG_INF: 'Reset button pressed, resetting frequency to 2'
+•	next_state == BLINKING_ENTRY after RESET case
+•	State eventually reaches BLINKING_RUN
+
+Mocks/Setup: Start in ERROR state, fire reset_button_event
+Notes: RESET case sets action_led_hz = LED_BLINK_FREQ_HZ then next_state = BLINKING_ENTRY
+
+
+Test 8: BLINKING_RUN – Freq Up Button: 2 Hz → 3 Hz
+Starting State: BLINKING_RUN
+Trigger: freq_up_button_callback fires once
+
+Checks:
+•	action_led_hz incremented from 2 to 3
+•	LOG_INF: 'Freq Up button pressed, frequency is 3'
+•	iv_pump_led and buzzer_led toggle every ~167 ms (3 Hz)
+•	heartbeat_led still at 1 Hz
+•	LEDs remain out of phase
+•	state stays BLINKING_RUN
+
+Mocks/Setup: Set up_button_event = true
+Notes: Toggle interval at 3 Hz = 1000/(3*2) ≈ 166 ms
+
+
+Test 9: BLINKING_RUN – Freq Up Button: 3 Hz → 4 Hz
+Starting State: BLINKING_RUN
+Trigger: freq_up_button_callback fires again
+
+Checks:
+•	action_led_hz incremented from 3 to 4
+•	LOG_INF: 'Freq Up button pressed, frequency is 4'
+•	iv_pump_led and buzzer_led toggle every 125 ms (4 Hz)
+•	heartbeat_led still at 1 Hz
+•	state stays BLINKING_RUN
+
+Mocks/Setup: Pre-set action_led_hz = 3, fire up_button_event
+Notes: Toggle interval at 4 Hz = 1000/(4*2) = 125 ms
+
+
+Test 10: BLINKING_RUN – Freq Up Button: 4 Hz → 5 Hz (Max)
+Starting State: BLINKING_RUN
+Trigger: freq_up_button_callback fires
+
+Checks:
+•	action_led_hz incremented from 4 to 5
+•	LOG_INF: 'Freq Up button pressed, frequency is 5'
+•	iv_pump_led and buzzer_led toggle every 100 ms (5 Hz)
+•	heartbeat_led still at 1 Hz
+•	state stays BLINKING_RUN (5 is still valid)
+
+Mocks/Setup: Pre-set action_led_hz = 4, fire up_button_event
+Notes: Toggle interval at 5 Hz = 1000/(5*2) = 100 ms
+
+
+Test 11: BLINKING_RUN – Freq Up at Max Triggers ERROR
+Starting State: BLINKING_RUN
+Trigger: freq_up_button_callback fires when action_led_hz == 5
+
+Checks:
+•	action_led_hz increments to 6 (above MAX_FREQ_HZ)
+•	LOG_ERR: 'Action freq out of range 1-5: 6'
+•	next_state transitions to ERROR
+•	error_led ON, iv_pump_led OFF, buzzer_led OFF
+•	heartbeat_led continues at 1 Hz
+•	freq_up/freq_down/sleep interrupts disabled
+
+Mocks/Setup: Pre-set action_led_hz = 5, fire up_button_event
+Notes: Mirror of Test 6 on the upper bound
+
+
+Test 12: ERROR State – Reset Button Restores Default Frequency
+Starting State: ERROR
+Trigger: reset_button_callback fires
+
+Checks:
+•	action_led_hz reset to 2 (LED_BLINK_FREQ_HZ)
+•	LOG_INF: 'Reset button pressed, resetting frequency to 2'
+•	Transition: ERROR → RESET → BLINKING_ENTRY → BLINKING_RUN
+•	After full transition: error_led OFF, iv_pump_led blinking at 2 Hz
+
+Mocks/Setup: Start in ERROR (action_led_hz = 6), fire reset_button_event
+Notes: Same flow as Test 7 but entered from upper-bound overflow
+
+
+Test 13: BLINKING_RUN – Sleep Button Transitions to SLEEP
+Starting State: BLINKING_RUN
+Trigger: sleep_button_callback fires
+
+Checks:
+•	sleep_button_event == true detected
+•	LOG_INF: 'Sleep button pressed'
+•	next_state == SLEEP (since state != SLEEP)
+•	state updated to SLEEP
+
+Mocks/Setup: Fire sleep_button_event while in BLINKING_RUN
+Notes: Toggle logic: state == SLEEP ? BLINKING_ENTRY : SLEEP
+
+
+Test 14: SLEEP State – LEDs and Frequency Preserved
+Starting State: SLEEP
+Trigger: Entered from BLINKING_RUN with action_led_hz = 3
+
+Checks:
+•	action_led_hz unchanged (still 3, not reset)
+•	iv_pump_led turned OFF
+•	buzzer_led turned OFF
+•	error_led stays OFF
+•	heartbeat_led toggling at 1 Hz
+•	freq_up and freq_down interrupts disabled
+•	sleep button interrupt remains enabled
+•	next_state == SLEEP (stays in sleep)
+
+Mocks/Setup: Pre-set action_led_hz = 3, enter SLEEP state
+Notes: Sleep preserves frequency – RESET restores it, SLEEP does not
+
+
+Test 15: SLEEP State – Sleep Button Transitions to BLINKING_ENTRY
+Starting State: SLEEP
+Trigger: sleep_button_callback fires while in SLEEP
+
+Checks:
+•	sleep_button_event detected
+•	LOG_INF: 'Sleep button pressed'
+•	next_state == BLINKING_ENTRY (since state == SLEEP)
+•	BLINKING_ENTRY re-enables freq_up/freq_down interrupts
+•	iv_pump_led and buzzer_led restored
+•	Transitions to BLINKING_RUN
+
+Mocks/Setup: Start in SLEEP, fire sleep_button_event
+Notes: Wake-up path: SLEEP → BLINKING_ENTRY → BLINKING_RUN
+
+
+Test 16: SLEEP State – Reset Button Transitions to RESET
+Starting State: SLEEP
+Trigger: sleep_button pressed (enter SLEEP), then reset_button pressed
+
+Checks:
+•	After sleep_button: state == SLEEP
+•	reset_button_event detected while in SLEEP
+•	LOG_INF: 'Reset button pressed, resetting frequency to 2'
+•	next_state == RESET (reset takes priority over sleep next_state)
+•	action_led_hz reset to LED_BLINK_FREQ_HZ (2)
+•	Transitions: RESET → BLINKING_ENTRY → BLINKING_RUN
+
+Mocks/Setup: Enter SLEEP, then fire reset_button_event
+Notes: Reset is checked after sleep in the event loop so it overrides sleep's next_state = SLEEP
+
+Implementation Notes
+Mock Strategy
+•	Use Zephyr's fake GPIO driver (CONFIG_GPIO_EMUL=y) to mock all gpio_pin_configure_dt, gpio_pin_set_dt, gpio_pin_toggle_dt calls
+•	Use a mock k_uptime_get() that returns a controlled time value to simulate LED toggle timing without real delays
+•	Set global event flags (sleep_button_event, up_button_event, etc.) directly to simulate button callbacks
+•	Run student_main() in a k_thread with k_thread_abort() for teardown
+
+Timing Verification
+•	For blink frequency tests, advance mock time past the threshold and confirm toggle occurred
+•	Heartbeat interval: 500 ms. Action LED interval = 1000 / (hz * 2) ms
+•	Out-of-phase check: after any toggle, assert iv_pump_led.illuminated != buzzer_led.illuminated (inferred from gpio emul state)
+
+File Structure
+•	test_state_machine.c – main ztest file with all 16 tests
+•	test_state_machine.h – shared types, extern references, mock declarations
+•	CMakeLists.txt – rename student main() to student_main(), link test files

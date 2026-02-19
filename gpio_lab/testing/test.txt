@@ -9,10 +9,10 @@ in init state ...
   - check that all led output pins are initialized 
 
 test 2:
-check transition to default state
+check transition from init to blinking state
 
 test 3:
-in default state ...
+in blinking state 
   - check that buzzer_led and iv_pump_led are blinking out of phase with one another at 2 Hz
   - check heartbeat led blinking at 1 Hz
   - check that the error led is off
