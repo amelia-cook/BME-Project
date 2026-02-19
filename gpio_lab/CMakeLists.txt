@@ -42,6 +42,9 @@ if(DEFINED BOARD AND BOARD STREQUAL "native_sim")
 
 endif()
 
+# --------------------------------------------------
+# Standard Zephyr application setup
+# --------------------------------------------------
 
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})  # defines 'app' target
 project(gpio_tests)
