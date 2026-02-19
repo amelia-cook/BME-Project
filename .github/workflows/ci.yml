@@ -30,7 +30,7 @@ jobs:
         run: |
           cd gpio_lab
           west build -b native_sim --build-dir=build_test -- \
-            -DDTC_OVERLAY_FILE=native_sim.overlay \
+            -DDTC_OVERLAY_FILE=boards/native_sim.overlay \
             -DEXTRA_CONF_FILE=test.prj.conf \
             -DTEST_BUILD=ON
       
