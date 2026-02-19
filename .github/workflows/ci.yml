@@ -26,35 +26,34 @@ jobs:
           west build -b native_sim -- \
             -DEXTRA_CONF_FILE=sim.proj.conf
       
-      # - name: Build tests for native_sim
-      #   run: |
-      #     cd gpio_lab
-      #     west build -b native_sim --build-dir=build_test -- \
-      #       -DDTC_OVERLAY_FILE=native_sim.overlay \
-      #       -DEXTRA_CONF_FILE=test.prj.conf \
-      #       -DTEST_BUILD=ON
+      - name: Build tests for native_sim
+        run: |
+          cd gpio_lab
+          west build -b native_sim --build-dir=build_test -- \
+            -DDTC_OVERLAY_FILE=native_sim.overlay \
+            -DEXTRA_CONF_FILE=test.prj.conf \
+            -DTEST_BUILD=ON
       
-      # - name: Run unit tests
-      #   run: |
-      #     cd gpio_lab
-      #     chmod +x build_test/zephyr/zephyr.exe
-      #     timeout 10s stdbuf -oL build_test/zephyr/zephyr.exe | tee test_output.log || true
+      - name: Run unit tests
+        run: |
+          cd gpio_lab
+          chmod +x build_test/zephyr/zephyr.exe
+          timeout 10s stdbuf -oL build_test/zephyr/zephyr.exe | tee test_output.log
           
-      # - name: Check test results
-      #   run: |
-      #     cd gpio_lab
-      #     if grep -q "PROJECT EXECUTION SUCCESSFUL" test_output.log; then
-      #       echo "All tests passed!"
-      #       exit 0
-      #     elif grep -q "PROJECT EXECUTION FAILED" test_output.log; then
-      #       echo "Tests failed!"
-      #       cat test_output.log
-      #       exit 1
-      #     else
-      #       echo "Could not determine test status"
-      #       cat test_output.log
-      #       exit 1
-      #     fi
+      - name: Check test results
+        run: |
+          cd gpio_lab
+          cat test_output.log
+          if grep -q "PROJECT EXECUTION SUCCESSFUL" test_output.log; then
+            echo "All tests passed!"
+            exit 0
+          elif grep -q "PROJECT EXECUTION FAILED" test_output.log; then
+            echo "Tests failed!"
+            exit 1
+          else
+            echo "Could not determine test status"
+            exit 1
+          fi
 
 
 
