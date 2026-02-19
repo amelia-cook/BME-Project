@@ -24,7 +24,7 @@ jobs:
         run: |
           cd gpio_lab
           west build -b native_sim -- \
-            -DEXTRA_CONF_FILE=sim.proj.conf
+            -DEXTRA_CONF_FILE=sim.prj.conf
       
       - name: Build tests for native_sim
         run: |
