@@ -40,7 +40,7 @@ static void stop_main(void)
 {
     if (main_running) {
         k_thread_abort(student_main_tid);
-        k_msleep(20);
+        k_msleep(50);  /* was 20 — give scheduler more time to fully clean up */
         main_running = false;
     }
 }
@@ -59,27 +59,22 @@ static void stop_main(void)
  */
 static void start_main(int settle_ms)
 {
-    /* ---- Clear all event flags immediately before spawning ---- */
+    /* Extra yield after stop_main() to let the scheduler fully drain
+     * the aborted thread before we touch shared globals */
+    k_msleep(50);
+
+    /* NOW clear flags — after any residual scheduling is done */
     sleep_button_event = false;
     up_button_event    = false;
     down_button_event  = false;
     reset_button_event = false;
 
-    /* Reset LED status so toggle-time comparisons start from a clean baseline */
     heartbeat_led_status.toggle_time = 0;
     heartbeat_led_status.illuminated = true;
     iv_pump_led_status.toggle_time   = 0;
     iv_pump_led_status.illuminated   = true;
 
-    /* Spawn student thread */
-    student_main_tid = k_thread_create(
-        &student_main_thread,
-        student_main_stack,
-        K_THREAD_STACK_SIZEOF(student_main_stack),
-        student_main_entry,
-        NULL, NULL, NULL,
-        STUDENT_MAIN_PRIORITY, 0, K_NO_WAIT);
-
+    student_main_tid = k_thread_create(...);
     k_msleep(settle_ms);
 }
 
