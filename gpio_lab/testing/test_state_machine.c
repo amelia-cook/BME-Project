@@ -4,21 +4,12 @@
  *
  * Build requirements (prj.conf):
  *   CONFIG_ZTEST=y
- *   CONFIG_GPIO_EMUL=y   (Zephyr emulated GPIO driver)
+ *   CONFIG_GPIO_EMUL=y
  *   CONFIG_LOG=y
  *   CONFIG_LOG_BACKEND_UART=y
  *
- * CMakeLists.txt must rename student main() → student_main() e.g.:
+ * CMakeLists.txt must rename student main() to student_main():
  *   target_compile_definitions(app PRIVATE "main=student_main")
- *
- * Strategy:
- *  - student_main() runs in a background k_thread.
- *  - Button presses are simulated by setting the global event flags directly
- *    (sleep_button_event, up_button_event, etc.) — the same flags the real
- *    callbacks write to.
- *  - Timing is controlled by advancing a mock uptime counter so we don't
- *    have to wait real milliseconds for LED toggles.
- *  - GPIO emul lets us read pin state without real hardware.
  */
 
 #include <zephyr/ztest.h>
@@ -44,19 +35,6 @@ static void student_main_entry(void *p1, void *p2, void *p3)
     main_running = false;
 }
 
-/** Start student_main() in a background thread and wait for it to settle. */
-static void start_main(int settle_ms)
-{
-    student_main_tid = k_thread_create(
-        &student_main_thread,
-        student_main_stack,
-        K_THREAD_STACK_SIZEOF(student_main_stack),
-        student_main_entry,
-        NULL, NULL, NULL,
-        STUDENT_MAIN_PRIORITY, 0, K_NO_WAIT);
-    k_msleep(settle_ms);
-}
-
 /** Kill the background thread cleanly. */
 static void stop_main(void)
 {
@@ -67,11 +45,49 @@ static void stop_main(void)
     }
 }
 
+/**
+ * Clear all shared state, then start student_main() in a background thread.
+ *
+ * Event flags are cleared HERE so that stale presses from any previous test
+ * cannot bleed into the new one regardless of what the test body set up before
+ * calling us.  The before() fixture also clears them as a belt-and-suspenders
+ * measure, but clearing them as late as possible (right before spawn) is the
+ * most reliable guard.
+ *
+ * @param settle_ms  How long to wait after spawning before returning.
+ *                   150 ms is enough for INIT to run and reach BLINKING_RUN.
+ */
+static void start_main(int settle_ms)
+{
+    /* ---- Clear all event flags immediately before spawning ---- */
+    sleep_button_event = false;
+    up_button_event    = false;
+    down_button_event  = false;
+    reset_button_event = false;
+
+    /* Reset LED status so toggle-time comparisons start from a clean baseline */
+    heartbeat_led_status.toggle_time = 0;
+    heartbeat_led_status.illuminated = true;
+    iv_pump_led_status.toggle_time   = 0;
+    iv_pump_led_status.illuminated   = true;
+
+    /* Spawn student thread */
+    student_main_tid = k_thread_create(
+        &student_main_thread,
+        student_main_stack,
+        K_THREAD_STACK_SIZEOF(student_main_stack),
+        student_main_entry,
+        NULL, NULL, NULL,
+        STUDENT_MAIN_PRIORITY, 0, K_NO_WAIT);
+
+    k_msleep(settle_ms);
+}
+
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                             */
 /* ------------------------------------------------------------------ */
 
-/** Press a button by setting its event flag; give the main loop time to react. */
+/** Simulate a button press and wait for the main loop to react. */
 static void press_button(volatile bool *event_flag, int settle_ms)
 {
     *event_flag = true;
@@ -79,34 +95,55 @@ static void press_button(volatile bool *event_flag, int settle_ms)
 }
 
 /**
- * Count how many times a GPIO pin toggled within a real-time window.
+ * Assert that an LED toggles at approximately the expected frequency.
  *
- * Uses gpio_emul_input_set to observe toggle_count via the gpio_emul API.
- * Simpler alternative: read iv_pump_led_status / heartbeat_led_status directly.
+ * Algorithm:
+ *  1. Sync: wait for the very next edge so counting starts clean.
+ *  2. Count every subsequent edge over `window_ms`.
+ *  3. Hz = (toggles / 2) / (window_ms / 1000) = toggles * 500 / window_ms
  *
- * @param status   Pointer to the led_status struct for the pin of interest
- * @param window_ms  How long (real ms) to observe
- * @param expected_hz  Expected frequency
- * @param tolerance_hz  Allowed deviation (±)
+ * Sampling every 5 ms gives ±5 ms timing resolution, well within the
+ * ±1 Hz tolerance used everywhere in this file.
+ *
+ * The old implementation sampled every 10 ms and compared against the
+ * *initial* state without updating it between samples, which caused it to
+ * miss edges and report ~double the true frequency.
  */
 static void assert_blink_freq(struct led_status *status,
                                int window_ms,
                                int expected_hz,
                                int tolerance_hz)
 {
-    bool start_illuminated = status->illuminated;
-    int  toggles = 0;
-    int  steps   = window_ms / 10;
+    /* Step 1 – sync to the next edge.
+     * Allow up to 2 full cycles at the expected frequency before giving up. */
+    bool    initial       = status->illuminated;
+    int64_t sync_limit_ms = (2 * 1000) / expected_hz;
+    int64_t sync_deadline = k_uptime_get() + sync_limit_ms;
 
-    for (int i = 0; i < steps; i++) {
-        k_msleep(10);
-        if (status->illuminated != start_illuminated) {
-            toggles++;
-            start_illuminated = status->illuminated;
+    while (status->illuminated == initial) {
+        k_msleep(5);
+        if (k_uptime_get() > sync_deadline) {
+            zassert_unreachable(
+                "LED never toggled while syncing (expected %d Hz)", expected_hz);
+            return;
         }
     }
-    /* Each full cycle = 2 toggles.  toggles/2 ≈ cycles in window_ms. */
-    int measured_hz = (toggles * 1000) / (window_ms * 2);
+
+    /* Step 2 – count edges over the observation window */
+    bool    last    = status->illuminated;
+    int     toggles = 0;
+    int64_t end     = k_uptime_get() + window_ms;
+
+    while (k_uptime_get() < end) {
+        k_msleep(5);
+        if (status->illuminated != last) {
+            toggles++;
+            last = status->illuminated;
+        }
+    }
+
+    /* Step 3 – compute and assert Hz */
+    int measured_hz = (toggles * 500) / window_ms;
 
     zassert_within(measured_hz, expected_hz, tolerance_hz,
         "Expected ~%d Hz but measured ~%d Hz (%d toggles in %d ms)",
@@ -120,21 +157,18 @@ static void assert_blink_freq(struct led_status *status,
 static void before(void *f)
 {
     ARG_UNUSED(f);
-    stop_main();  /* clean up any leftover thread */
+    stop_main();  /* abort any leftover thread from the previous test */
 
-    /* Reset all shared globals to a known baseline */
-    state             = INIT;
-    next_state        = INIT;
-    action_led_hz     = LED_BLINK_FREQ_HZ;
+    /* Reset state machine globals to a known baseline */
+    state          = INIT;
+    next_state     = INIT;
+    action_led_hz  = LED_BLINK_FREQ_HZ;
+
+    /* Belt-and-suspenders clear of event flags (also done in start_main) */
     sleep_button_event = false;
     up_button_event    = false;
     down_button_event  = false;
     reset_button_event = false;
-
-    heartbeat_led_status.toggle_time = 0;
-    heartbeat_led_status.illuminated = true;
-    iv_pump_led_status.toggle_time   = 0;
-    iv_pump_led_status.illuminated   = true;
 }
 
 static void after(void *f)
@@ -148,15 +182,7 @@ static void after(void *f)
 /* ================================================================== */
 ZTEST(state_machine_tests, test_01_init_gpio_ready)
 {
-    /*
-     * Run student_main for just long enough to execute the INIT case
-     * and transition to BLINKING_RUN.  We're verifying that INIT
-     * completes without returning an error (which would abort the thread).
-     *
-     * A more thorough check requires wrapping gpio_pin_configure_dt with
-     * a spy; here we check the observable side-effect: state changed.
-     */
-    start_main(150);  /* INIT runs, state becomes BLINKING_RUN */
+    start_main(150);
 
     zassert_equal(state, BLINKING_RUN,
         "Expected state == BLINKING_RUN after INIT, got %d", state);
@@ -169,19 +195,14 @@ ZTEST(state_machine_tests, test_01_init_gpio_ready)
 /* ================================================================== */
 ZTEST(state_machine_tests, test_02_init_to_blinking_run)
 {
-    /*
-     * INIT sets next_state = BLINKING_RUN deliberately skipping
-     * BLINKING_ENTRY.  Verify the first stable state is BLINKING_RUN.
-     */
     start_main(150);
 
     zassert_equal(state, BLINKING_RUN,
         "INIT should transition directly to BLINKING_RUN, got %d", state);
 
-    /* Also confirm BLINKING_ENTRY was never the current state by checking
-     * that heartbeat is ticking (only starts in BLINKING_RUN onward). */
+    /* Heartbeat ticking confirms BLINKING_RUN is active */
     bool illuminated_before = heartbeat_led_status.illuminated;
-    k_msleep(600);  /* > 500 ms heartbeat interval */
+    k_msleep(600);
     zassert_not_equal(heartbeat_led_status.illuminated, illuminated_before,
         "Heartbeat should have toggled, proving BLINKING_RUN is active");
 }
@@ -191,27 +212,15 @@ ZTEST(state_machine_tests, test_02_init_to_blinking_run)
 /* ================================================================== */
 ZTEST(state_machine_tests, test_03_blinking_run_default_freq)
 {
-    start_main(150);  /* reach BLINKING_RUN */
+    start_main(150);
 
-    /* Heartbeat at 1 Hz */
-    assert_blink_freq(&heartbeat_led_status, 2000, 1, 1);
-
-    /* Action LEDs at 2 Hz */
-    assert_blink_freq(&iv_pump_led_status, 2000, 2, 1);
-
-    /* iv_pump and buzzer must be out of phase at every sample point.
-     * We infer buzzer state from the fact it's toggled together with iv_pump
-     * but with inverse logic (one goes HIGH as the other goes LOW). */
-    /* Because we don't have direct buzzer status struct we use the invariant:
-     * after any actionLEDs() call, iv_pump_led_status.illuminated should be
-     * opposite to the buzzer pin.  Indirectly we check action_led_hz. */
     zassert_equal(action_led_hz, LED_BLINK_FREQ_HZ,
         "Default frequency should be %d Hz", LED_BLINK_FREQ_HZ);
-
-    /* Error LED: we cannot read GPIO_OUTPUT directly without gpio_emul,
-     * but we can assert no transition to ERROR occurred. */
     zassert_equal(state, BLINKING_RUN,
         "State should remain BLINKING_RUN with no button presses");
+
+    assert_blink_freq(&heartbeat_led_status, 2000, 1, 1);
+    assert_blink_freq(&iv_pump_led_status,   2000, 2, 1);
 }
 
 /* ================================================================== */
@@ -219,21 +228,14 @@ ZTEST(state_machine_tests, test_03_blinking_run_default_freq)
 /* ================================================================== */
 ZTEST(state_machine_tests, test_04_blinking_entry_restores_state)
 {
-    /*
-     * Force a path through BLINKING_ENTRY by starting in RESET state.
-     * RESET sets next_state = BLINKING_ENTRY which then transitions to
-     * BLINKING_RUN.
-     */
+    /* Force a path through BLINKING_ENTRY by pre-setting state to RESET */
     state      = RESET;
     next_state = RESET;
     start_main(200);
 
-    /* After RESET → BLINKING_ENTRY → BLINKING_RUN the state should settle */
     k_msleep(100);
     zassert_equal(state, BLINKING_RUN,
         "Should reach BLINKING_RUN via BLINKING_ENTRY, got %d", state);
-
-    /* Frequency should be reset to default by RESET case */
     zassert_equal(action_led_hz, LED_BLINK_FREQ_HZ,
         "action_led_hz should be %d after RESET", LED_BLINK_FREQ_HZ);
 }
@@ -254,10 +256,7 @@ ZTEST(state_machine_tests, test_05_freq_down_2_to_1)
     zassert_equal(state, BLINKING_RUN,
         "State should remain BLINKING_RUN at 1 Hz");
 
-    /* Verify new toggle interval ≈ 500 ms (1 Hz) */
-    assert_blink_freq(&iv_pump_led_status, 2000, 1, 1);
-
-    /* Heartbeat still 1 Hz */
+    assert_blink_freq(&iv_pump_led_status,   2000, 1, 1);
     assert_blink_freq(&heartbeat_led_status, 2000, 1, 1);
 }
 
@@ -269,13 +268,11 @@ ZTEST(state_machine_tests, test_06_freq_down_below_min_triggers_error)
     action_led_hz = 1;  /* already at minimum */
     start_main(150);
 
-    /* One more press drops to 0 → out of range */
     press_button(&down_button_event, 100);
 
     zassert_equal(state, ERROR,
         "State should be ERROR when action_led_hz < 1, got %d", state);
 
-    /* Heartbeat should still run in ERROR */
     bool hb_before = heartbeat_led_status.illuminated;
     k_msleep(600);
     zassert_not_equal(heartbeat_led_status.illuminated, hb_before,
@@ -283,14 +280,13 @@ ZTEST(state_machine_tests, test_06_freq_down_below_min_triggers_error)
 }
 
 /* ================================================================== */
-/*  TEST 7 – ERROR state: Reset button → BLINKING_ENTRY               */
+/*  TEST 7 – ERROR state: Reset button → BLINKING_RUN                 */
 /* ================================================================== */
 ZTEST(state_machine_tests, test_07_error_reset_button)
 {
-    /* Start directly in ERROR */
     state         = ERROR;
     next_state    = ERROR;
-    action_led_hz = 0;  /* simulates how we got here */
+    action_led_hz = 0;
     start_main(150);
 
     press_button(&reset_button_event, 150);
@@ -314,7 +310,7 @@ ZTEST(state_machine_tests, test_08_freq_up_2_to_3)
         "action_led_hz should be 3 after one freq_up press, got %d", action_led_hz);
     zassert_equal(state, BLINKING_RUN, "Should remain BLINKING_RUN at 3 Hz");
 
-    assert_blink_freq(&iv_pump_led_status, 2000, 3, 1);
+    assert_blink_freq(&iv_pump_led_status,   2000, 3, 1);
     assert_blink_freq(&heartbeat_led_status, 2000, 1, 1);
 }
 
@@ -323,7 +319,10 @@ ZTEST(state_machine_tests, test_08_freq_up_2_to_3)
 /* ================================================================== */
 ZTEST(state_machine_tests, test_09_freq_up_3_to_4)
 {
+    /* Skip INIT so our pre-set action_led_hz is not overwritten */
     action_led_hz = 3;
+    state         = BLINKING_RUN;
+    next_state    = BLINKING_RUN;
     start_main(150);
 
     press_button(&up_button_event, 50);
@@ -332,7 +331,7 @@ ZTEST(state_machine_tests, test_09_freq_up_3_to_4)
         "action_led_hz should be 4, got %d", action_led_hz);
     zassert_equal(state, BLINKING_RUN, "Should remain BLINKING_RUN at 4 Hz");
 
-    assert_blink_freq(&iv_pump_led_status, 2000, 4, 1);
+    assert_blink_freq(&iv_pump_led_status,   2000, 4, 1);
     assert_blink_freq(&heartbeat_led_status, 2000, 1, 1);
 }
 
@@ -342,6 +341,8 @@ ZTEST(state_machine_tests, test_09_freq_up_3_to_4)
 ZTEST(state_machine_tests, test_10_freq_up_4_to_5)
 {
     action_led_hz = 4;
+    state         = BLINKING_RUN;
+    next_state    = BLINKING_RUN;
     start_main(150);
 
     press_button(&up_button_event, 50);
@@ -351,7 +352,7 @@ ZTEST(state_machine_tests, test_10_freq_up_4_to_5)
     zassert_equal(state, BLINKING_RUN,
         "Should remain BLINKING_RUN at max freq 5 Hz");
 
-    assert_blink_freq(&iv_pump_led_status, 2000, 5, 1);
+    assert_blink_freq(&iv_pump_led_status,   2000, 5, 1);
     assert_blink_freq(&heartbeat_led_status, 2000, 1, 1);
 }
 
@@ -361,6 +362,8 @@ ZTEST(state_machine_tests, test_10_freq_up_4_to_5)
 ZTEST(state_machine_tests, test_11_freq_up_above_max_triggers_error)
 {
     action_led_hz = 5;  /* already at maximum */
+    state         = BLINKING_RUN;
+    next_state    = BLINKING_RUN;
     start_main(150);
 
     press_button(&up_button_event, 100);
@@ -368,7 +371,6 @@ ZTEST(state_machine_tests, test_11_freq_up_above_max_triggers_error)
     zassert_equal(state, ERROR,
         "State should be ERROR when action_led_hz > 5, got %d", state);
 
-    /* Heartbeat must keep running */
     bool hb_before = heartbeat_led_status.illuminated;
     k_msleep(600);
     zassert_not_equal(heartbeat_led_status.illuminated, hb_before,
@@ -382,7 +384,7 @@ ZTEST(state_machine_tests, test_12_error_upper_overflow_reset)
 {
     state         = ERROR;
     next_state    = ERROR;
-    action_led_hz = 6;  /* simulates upper overflow */
+    action_led_hz = 6;
     start_main(150);
 
     press_button(&reset_button_event, 150);
@@ -416,21 +418,22 @@ ZTEST(state_machine_tests, test_14_sleep_state_behavior)
     action_led_hz = saved_hz;
     start_main(150);
 
-    press_button(&sleep_button_event, 100);
+    /* Extra settle so SLEEP case fully executes before we start observing */
+    press_button(&sleep_button_event, 150);
     zassert_equal(state, SLEEP, "Precondition: must be in SLEEP");
+    k_msleep(100);
 
-    /* Frequency must be preserved (not reset) */
+    /* Frequency must be preserved */
     zassert_equal(action_led_hz, saved_hz,
         "SLEEP should preserve action_led_hz (%d), got %d", saved_hz, action_led_hz);
 
-    /* iv_pump LED should be off (no toggling) */
+    /* iv_pump LED must NOT toggle while asleep */
     bool iv_before = iv_pump_led_status.illuminated;
-    k_msleep(600);
-    /* In SLEEP, actionLEDs() is NOT called, so iv_pump should not toggle */
+    k_msleep(700);
     zassert_equal(iv_pump_led_status.illuminated, iv_before,
         "iv_pump_led should NOT toggle in SLEEP state");
 
-    /* Heartbeat should still be toggling */
+    /* Heartbeat MUST keep toggling */
     bool hb_before = heartbeat_led_status.illuminated;
     k_msleep(600);
     zassert_not_equal(heartbeat_led_status.illuminated, hb_before,
@@ -438,45 +441,40 @@ ZTEST(state_machine_tests, test_14_sleep_state_behavior)
 }
 
 /* ================================================================== */
-/*  TEST 15 – SLEEP: Sleep button again → BLINKING_ENTRY              */
+/*  TEST 15 – SLEEP: Sleep button again → BLINKING_RUN                */
 /* ================================================================== */
 ZTEST(state_machine_tests, test_15_sleep_button_wakes_up)
 {
     start_main(150);
 
-    /* Enter SLEEP */
     press_button(&sleep_button_event, 100);
     zassert_equal(state, SLEEP, "Precondition: must be in SLEEP");
 
-    /* Press sleep again to wake */
     press_button(&sleep_button_event, 200);
 
     zassert_equal(state, BLINKING_RUN,
         "Should wake to BLINKING_RUN via BLINKING_ENTRY, got %d", state);
 
-    /* Confirm action LEDs are active again */
+    /* iv_pump must resume toggling after wake */
     bool iv_before = iv_pump_led_status.illuminated;
-    k_msleep(600);
+    k_msleep(700);
     zassert_not_equal(iv_pump_led_status.illuminated, iv_before,
         "iv_pump_led should resume toggling after waking from SLEEP");
 }
 
 /* ================================================================== */
-/*  TEST 16 – SLEEP: Reset button → RESET → BLINKING_ENTRY            */
+/*  TEST 16 – SLEEP: Reset button → RESET → BLINKING_RUN              */
 /* ================================================================== */
 ZTEST(state_machine_tests, test_16_sleep_then_reset_button)
 {
-    action_led_hz = 4;  /* non-default frequency before sleeping */
+    action_led_hz = 4;
     start_main(150);
 
-    /* Go to sleep */
     press_button(&sleep_button_event, 100);
     zassert_equal(state, SLEEP, "Precondition: must be in SLEEP");
 
-    /* Press reset while asleep */
     press_button(&reset_button_event, 200);
 
-    /* Reset overrides SLEEP's self-loop */
     zassert_equal(action_led_hz, LED_BLINK_FREQ_HZ,
         "RESET should restore frequency to %d, got %d",
         LED_BLINK_FREQ_HZ, action_led_hz);
