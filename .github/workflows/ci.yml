@@ -38,7 +38,7 @@ jobs:
         run: |
           cd gpio_lab
           chmod +x build_test/zephyr/zephyr.exe
-          timeout 10s stdbuf -oL build_test/zephyr/zephyr.exe | tee test_output.log
+          build_test/zephyr/zephyr.exe | tee test_output.log
           
       - name: Check test results
         run: |
