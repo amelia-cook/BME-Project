@@ -1,6 +1,11 @@
-amelia:
-- fix pipeline!!
-
-sophie:
-- fix test structure
-- write tests
+TODOs:
+- overlay file
+    - do we want to grab theirs with their aliases etc?
+      maybe better to just use our own for expected behavior of the pins
+    - after some thought, do this!!!!!!!! ^^^^^
+- macros
+    - make all do-while? for if-statement compilation issue?
+    - change names to reflect lib?
+        - avoid interference with potential student macro names
+- fix pipeline (again)
+    - prj conf files?

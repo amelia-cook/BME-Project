@@ -6,6 +6,7 @@
 // #include <zephyr/drivers/adc.h> // CONFIG_ADC=y
 // #include <zephyr/drivers/pwm.h> // CONFIG_PWM=y
 // #include <zephyr/smf.h> // CONFIG_SMF=y
+#include "bme554_lib.h"
 
 LOG_MODULE_REGISTER(main, LOG_LEVEL_DBG);
 
@@ -264,6 +265,8 @@ int main(void)
                     return err;
                 }
                 
+                ERROR_STATUS();
+                
                 next_state = ERROR;
                 break;
             case RESET:
@@ -273,6 +276,8 @@ int main(void)
                 }
                 
                 action_led_hz = LED_BLINK_FREQ_HZ;
+                
+                RESET_STATUS();
                 
                 next_state = BLINKING_ENTRY;
                 break;
@@ -304,6 +309,8 @@ int main(void)
                     return err;
                 }
                 
+                SLEEP_STATUS();
+                
                 next_state = SLEEP;
                 break;
             default:
@@ -315,16 +322,19 @@ int main(void)
             LOG_INF("Sleep button pressed");
             next_state = state == SLEEP ? BLINKING_ENTRY : SLEEP;
             sleep_button_event = false;
+            SLEEP_PRESSED();
         }
         if (up_button_event) {
             action_led_hz += FREQ_UP_INC_HZ;
             LOG_INF("Freq Up button pressed, frequency is %d", action_led_hz);
             up_button_event = false;
+            FREQUENCY_UP_PRESSED(action_led_hz);
         }
         if (down_button_event) {
             action_led_hz -= FREQ_DOWN_INC_HZ;
             LOG_INF("Freq Down button pressed, frequency is %d", action_led_hz);
             down_button_event = false;
+            FREQUENCY_DOWN_PRESSED(action_led_hz);
         }
         if ((action_led_hz < MIN_FREQ_HZ || action_led_hz > MAX_FREQ_HZ) && state != ERROR) {
             LOG_ERR("Action freq out of range 1-5: %d.", action_led_hz);
@@ -334,6 +344,7 @@ int main(void)
             LOG_INF("Reset button pressed, resetting frequency to %d", LED_BLINK_FREQ_HZ);
             next_state = RESET;
             reset_button_event = false;
+            RESET_PRESSED();
         }
         
         state = next_state;

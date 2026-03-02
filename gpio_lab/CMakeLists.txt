@@ -52,4 +52,8 @@ project(gpio_tests)
 target_sources(app PRIVATE src/main.c)
 target_sources(app PRIVATE testing/test_state_machine.c)
 target_sources(app PRIVATE testing/bme554_lib.c)
+target_sources(app PRIVATE testing/gpio_test.c)
+
+target_include_directories(app PRIVATE testing)
+
 target_compile_definitions(app PRIVATE "main=student_main")
