@@ -5,24 +5,6 @@
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/gpio/gpio_emul.h>
 
-/**
- * thread for student main code
- * - thread declaration
- * - thread teardown (after tests)
- * - thread start (before tests)
- * 
- * helper functions
- * - trigger button ISRs
- * - check blink frequency
- * 
- * fixtures
- * - before
- * - after
- * 
- * tests:
- * - 
- */
-
 /* ------------------------------------------------------------------ */
 /*  Thread boilerplate                                                */
 /* ------------------------------------------------------------------ */
@@ -73,13 +55,6 @@ static void start_main(int settle_ms)
 /*  Helpers                                                             */
 /* ------------------------------------------------------------------ */
 
-/** Simulate a button press and wait for the main loop to react. */
-static void press_button(volatile bool *event_flag, int settle_ms)
-{
-    *event_flag = true;
-    k_msleep(settle_ms);
-}
-
 /** Read logical LED state (true = illuminated) */
 static inline bool led_is_on(const struct gpio_dt_spec *led)
 {
@@ -118,6 +93,17 @@ static void assert_led_blink_freq(const struct gpio_dt_spec *led,
         expected_hz, measured_hz, toggles, window_ms);
 }
 
+static void simulate_button_click(const struct gpio_dt_spec *button)
+{
+    gpio_emul_input_set(button->port, button->pin, 1);
+    gpio_emul_fire_callbacks(button->port, button->pin);
+    
+    k_sleep(K_MSEC(5));
+    
+    gpio_emul_input_set(button->port, button->pin, 0);
+    gpio_emul_fire_callbacks(button->port, button->pin);
+}
+
 /* ------------------------------------------------------------------ */
 /*  Fixture                                                             */
 /* ------------------------------------------------------------------ */
@@ -125,6 +111,14 @@ static void assert_led_blink_freq(const struct gpio_dt_spec *led,
 static void before(void *)
 {
     stop_main();  /* abort any leftover thread from the previous test */
+    
+    k_event_clear(&program_test_events, FREQ_UP_TEST_NOTICE);
+    k_event_clear(&program_test_events, FREQ_DOWN_TEST_NOTICE);
+    k_event_clear(&program_test_events, RESET_BTN_TEST_NOTICE);
+    k_event_clear(&program_test_events, SLEEP_BTN_TEST_NOTICE);
+    k_event_clear(&program_test_events, ERROR_TEST_NOTICE);
+    k_event_clear(&program_test_events, RESET_TEST_NOTICE);
+    k_event_clear(&program_test_events, SLEEP_TEST_NOTICE);
 }
 
 static void after(void *)
@@ -136,15 +130,56 @@ static void after(void *)
 /*  TESTS                                                             */
 /* ================================================================== */
 
-/* check heartbeat frequency */
-ZTEST(state_machine_tests, test_03_blinking_run_default_freq)
+/* check default frequencies frequency */
+ZTEST(state_machine_tests, test_01_default_frequencies)
 {
     start_main(150);
     
     assert_led_blink_freq(&heartbeat_led, 2000, 1, 1);
-    // assert_led_blink_freq(&iv_pump_led, 2000, 2, 1);
-    // assert_led_blink_freq(&buzzer_led, 2000, 2, 1);
+    assert_led_blink_freq(&iv_pump_led, 2000, 2, 1);
+    assert_led_blink_freq(&buzzer_led, 2000, 2, 1);
 }
+
+/* freq up once + check */
+ZTEST(state_machine_tests, test_02_freq_up_one_test)
+{
+    start_main(150);
+    
+    simulate_button_click(&freq_up_button);
+    uint32_t events = k_event_wait(&program_test_events,
+                                   FREQ_UP_TEST_NOTICE,
+                                   true,
+                                   K_MSEC(200));
+    
+    assert_led_blink_freq(&heartbeat_led, 2000, 1, 1);
+    assert_led_blink_freq(&iv_pump_led, 2000, 3, 1);
+    assert_led_blink_freq(&buzzer_led, 2000, 3, 1);
+}
+
+
+
+
+
+
+/* description */
+ZTEST(state_machine_tests, test_xx_name)
+{
+    start_main(150);
+}
+
+/**
+ * up one -> freq 3, hb still 1
+ * down one -> freq 1, hb still 1
+ * up one, reset -> freq 2, hb still 1
+ * down one, reset -> freq 2, hb still 1
+ * sleep -> not blinking
+ * sleep, sleep -> blinking
+ * up two, sleep, sleep -> freq 4, hb still 1
+ * up one, sleep, reset -> freq 2, hb still 1
+ * down two -> error on, hb still 1
+ * up four -> error on, hb still 1
+ * down two, reset -> freq 2, hb still 1
+ */
 
 
 

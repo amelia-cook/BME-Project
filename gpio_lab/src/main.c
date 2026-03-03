@@ -265,7 +265,7 @@ int main(void)
                     return err;
                 }
                 
-                ERROR_STATUS();
+                ERROR_STATE();
                 
                 next_state = ERROR;
                 break;
@@ -309,7 +309,7 @@ int main(void)
                     return err;
                 }
                 
-                SLEEP_STATUS();
+                SLEEP_STATE();
                 
                 next_state = SLEEP;
                 break;

@@ -9,3 +9,7 @@ TODOs:
         - avoid interference with potential student macro names
 - fix pipeline (again)
     - prj conf files?
+- testing
+    - spec-specific tests!
+        - check for macros specified within the spec
+    - 
