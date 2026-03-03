@@ -122,9 +122,23 @@ static void assert_leds_blink_freq_fixed(const struct gpio_dt_spec *heartbeat_le
     bool last_state[4];
     int toggles[4] = {0};
 
+    /* ---- DEBUG BLOCK: print port/pin/ret/val for each LED before polling ---- */
+    for (int i = 0; i < 4; i++) {
+        gpio_port_value_t dbg_val;
+        int dbg_ret = gpio_emul_output_get(leds[i]->port, &dbg_val);
+        printk("DEBUG [%s]: port=%p pin=%d ret=%d raw_val=0x%08x bit=%d\n",
+               names[i],
+               (void *)leds[i]->port,
+               leds[i]->pin,
+               dbg_ret,
+               (unsigned int)dbg_val,
+               (int)((dbg_val >> leds[i]->pin) & 1));
+    }
+    /* ---- END DEBUG BLOCK ---- */
+
     // initialize last states
     for (int i = 0; i < 4; i++) {
-        last_state[i] = led_is_on(leds[i]) > 0;
+        last_state[i] = led_is_on(leds[i]);
     }
 
     int64_t end = k_uptime_get() + window_ms;
@@ -132,7 +146,7 @@ static void assert_leds_blink_freq_fixed(const struct gpio_dt_spec *heartbeat_le
     // main polling loop
     while (k_uptime_get() < end) {
         for (int i = 0; i < 4; i++) {
-            bool now = led_is_on(leds[i]) > 0;
+            bool now = led_is_on(leds[i]);
             if (now != last_state[i]) {
                 toggles[i]++;
                 last_state[i] = now;
