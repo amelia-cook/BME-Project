@@ -55,39 +55,96 @@ static void start_main(int settle_ms)
 /*  Helpers                                                             */
 /* ------------------------------------------------------------------ */
 
-/**
- * Assert that an LED toggles at approximately the expected frequency.
- */
-static void assert_led_blink_freq(const struct gpio_dt_spec *led,
-                                  int window_ms,
-                                  int expected_hz,
-                                  int tolerance_hz,
-                                  const char* led_name)
-{
-    /* Step 1 – count edges over the full window */
-    // bool last = led_is_on(led);
-    int toggles = 0;
-    int64_t end = k_uptime_get() + window_ms;
-    bool last = gpio_pin_get_dt(led) > 0;
+// /**
+//  * Assert that an LED toggles at approximately the expected frequency.
+//  */
+// static void assert_led_blink_freq(const struct gpio_dt_spec *led,
+//                                   int window_ms,
+//                                   int expected_hz,
+//                                   int tolerance_hz,
+//                                   const char* led_name)
+// {
+//     /* Step 1 – count edges over the full window */
+//     // bool last = led_is_on(led);
+//     int toggles = 0;
+//     int64_t end = k_uptime_get() + window_ms;
+//     bool last = gpio_pin_get_dt(led) > 0;
 
-    while (k_uptime_get() < end) {
-        // bool now = led_is_on(led);
-        bool now = gpio_pin_get_dt(led) > 0;
-        if (now != last) {
-            toggles++;
-            last = now;
-        }
-        k_msleep(1);  // 1 ms
+//     while (k_uptime_get() < end) {
+//         // bool now = led_is_on(led);
+//         bool now = gpio_pin_get_dt(led) > 0;
+//         if (now != last) {
+//             toggles++;
+//             last = now;
+//         }
+//         k_msleep(1);  // 1 ms
+//     }
+
+//     /* Step 2 – compute frequency in Hz */
+//     // Each toggle represents half a cycle
+//     int measured_hz = (toggles * 500) / window_ms;
+
+//     /* Step 3 – assert within tolerance */
+//     zassert_within(measured_hz, expected_hz, tolerance_hz,
+//         "LED %s: epected ~%d Hz but measured ~%d Hz (%d toggles in %d ms)",
+//         led_name, expected_hz, measured_hz, toggles, window_ms);
+// }
+
+static void assert_leds_blink_freq_fixed(const struct gpio_dt_spec *heartbeat_led,
+                                         const struct gpio_dt_spec *iv_pump_led,
+                                         const struct gpio_dt_spec *buzzer_led,
+                                         const struct gpio_dt_spec *error_led,
+                                         int window_ms,
+                                         int action_led_hz)  // configurable
+{
+    // Arrays for 4 LEDs
+    const struct gpio_dt_spec *leds[4] = { heartbeat_led, iv_pump_led, buzzer_led, error_led };
+    const char *names[4] = { "heartbeat", "iv_pump", "buzzer", "error" };
+    const int expected_hz[4] = { HB_LED_FREQ, action_led_hz, action_led_hz, 0 };
+    const int tolerance[4] = { 1, 1, 1, 0 };
+    const bool should_blink[4] = { true, true, true, false };
+
+    bool last_state[4];
+    int toggles[4] = {0};
+
+    // initialize last states
+    for (int i = 0; i < 4; i++) {
+        last_state[i] = gpio_pin_get_dt(leds[i]) > 0;
     }
 
-    /* Step 2 – compute frequency in Hz */
-    // Each toggle represents half a cycle
-    int measured_hz = (toggles * 500) / window_ms;
+    int64_t end = k_uptime_get() + window_ms;
 
-    /* Step 3 – assert within tolerance */
-    zassert_within(measured_hz, expected_hz, tolerance_hz,
-        "LED %s: epected ~%d Hz but measured ~%d Hz (%d toggles in %d ms)",
-        led_name, expected_hz, measured_hz, toggles, window_ms);
+    // main polling loop
+    while (k_uptime_get() < end) {
+        for (int i = 0; i < 4; i++) {
+            bool now = gpio_pin_get_dt(leds[i]) > 0;
+            if (now != last_state[i]) {
+                toggles[i]++;
+                last_state[i] = now;
+            }
+        }
+        k_msleep(1); // yield CPU so LED threads can run
+    }
+
+    // compute frequencies and assert
+    int measured_hz[4];
+    for (int i = 0; i < 4; i++) {
+        measured_hz[i] = (toggles[i] * 500) / window_ms; // each toggle = half cycle
+        if (should_blink[i]) {
+            zassert_within(measured_hz[i], expected_hz[i], tolerance[i],
+                "LED %s: expected ~%d Hz, measured ~%d Hz (%d toggles in %d ms)",
+                names[i], expected_hz[i], measured_hz[i], toggles[i], window_ms);
+        } else {
+            zassert_eq(measured_hz[i], 0,
+                "LED %s: should not blink but measured ~%d Hz (%d toggles in %d ms)",
+                names[i], measured_hz[i], toggles[i], window_ms);
+        }
+    }
+
+    // extra check: action LEDs must have same frequency
+    zassert_eq(measured_hz[1], measured_hz[2],
+        "Action LEDs out of sync: iv_pump ~%d Hz, buzzer ~%d Hz",
+        measured_hz[1], measured_hz[2]);
 }
 
 static void simulate_button_click(const struct gpio_dt_spec *button)
@@ -149,11 +206,14 @@ static void after(void *)
 ZTEST(state_machine_tests, test_01_default_frequencies)
 {
     start_main(150);
-    
-    assert_led_blink_freq(&heartbeat_led, 2000, 1, 1, "heartbeat");
-    assert_led_blink_freq(&iv_pump_led, 2000, 2, 1, "iv_pump");
-    assert_led_blink_freq(&buzzer_led, 2000, 2, 1, "buzzer");
-    assert_led_off(&error_led);
+
+    // Suppose action LEDs should blink at 2 Hz
+    assert_leds_blink_freq_fixed(heartbeat_led,
+                                 iv_pump_led,
+                                 buzzer_led,
+                                 error_led,
+                                 4000,
+                                 2);
 }
 
 
@@ -211,7 +271,7 @@ ZTEST(state_machine_tests, test_01_default_frequencies)
     
 //     simulate_button_click(&reset_button);
 //     events = k_event_wait(&program_test_events,
-//                           RESET_BTN_TEST_NOTICE,
+//                           RESET_TEST_NOTICE,
 //                           true,
 //                           K_MSEC(200));
 //     (void) events;
@@ -235,7 +295,7 @@ ZTEST(state_machine_tests, test_01_default_frequencies)
     
 //     simulate_button_click(&reset_button);
 //     events = k_event_wait(&program_test_events,
-//                           RESET_BTN_TEST_NOTICE,
+//                           RESET_TEST_NOTICE,
 //                           true,
 //                           K_MSEC(200));
 //     (void) events;
@@ -253,7 +313,7 @@ ZTEST(state_machine_tests, test_01_default_frequencies)
     
 //     simulate_button_click(&sleep_button);
 //     uint32_t events = k_event_wait(&program_test_events,
-//                                    SLEEP_BTN_TEST_NOTICE,
+//                                    SLEEP_TEST_NOTICE,
 //                                    true,
 //                                    K_MSEC(200));
 //     (void) events;
@@ -271,15 +331,16 @@ ZTEST(state_machine_tests, test_01_default_frequencies)
     
 //     simulate_button_click(&sleep_button);
 //     uint32_t events = k_event_wait(&program_test_events,
-//                                    SLEEP_BTN_TEST_NOTICE,
+//                                    SLEEP_TEST_NOTICE,
 //                                    true,
 //                                    K_MSEC(200));
     
+//     // TODO: clear sleep btn test notice event????????
 //     simulate_button_click(&sleep_button);
-//     uint32_t events = k_event_wait(&program_test_events,
-//                                    SLEEP_BTN_TEST_NOTICE,
-//                                    true,
-//                                    K_MSEC(200));
+//     events = k_event_wait(&program_test_events,
+//                           SLEEP_BTN_TEST_NOTICE,
+//                           true,
+//                           K_MSEC(200));
 //     (void) events;
     
 //     assert_led_blink_freq(&heartbeat_led, 2000, 1, 1, "heartbeat");
@@ -288,8 +349,95 @@ ZTEST(state_machine_tests, test_01_default_frequencies)
 //     assert_led_off(&error_led);
 // }
 
+// /* freq up + sleep + sleep + check */
+// ZTEST(state_machine_tests, test_xx_name)
+// {
+//     start_main(150);
+    
+//     simulate_button_click(&freq_up_button);
+//     uint32_t events = k_event_wait(&program_test_events,
+//                                    FREQ_UP_TEST_NOTICE,
+//                                    true,
+//                                    K_MSEC(200));
+    
+//     simulate_button_click(&sleep_button);
+//     events = k_event_wait(&program_test_events,
+//                           SLEEP_TEST_NOTICE,
+//                           true,
+//                           K_MSEC(200));
+   
+//     // TODO: clear sleep btn test notice event????????
+//     simulate_button_click(&sleep_button);
+//     events = k_event_wait(&program_test_events,
+//                           SLEEP_BTN_TEST_NOTICE,
+//                           true,
+//                           K_MSEC(200));
+//     (void) events;
+    
+//     assert_led_blink_freq(&heartbeat_led, 2000, 1, 1, "heartbeat");
+//     assert_led_blink_freq(&iv_pump_led, 2000, 3, 1, "iv_pump");
+//     assert_led_blink_freq(&buzzer_led, 2000, 3, 1, "buzzer");
+//     assert_led_off(&error_led);
+// }
 
+// /* freq up + sleep + reset + check */
+// ZTEST(state_machine_tests, test_xx_name)
+// {
+//     start_main(150);
+    
+//     simulate_button_click(&freq_up_button);
+//     uint32_t events = k_event_wait(&program_test_events,
+//                                    FREQ_UP_TEST_NOTICE,
+//                                    true,
+//                                    K_MSEC(200));
+    
+//     simulate_button_click(&sleep_button);
+//     events = k_event_wait(&program_test_events,
+//                           SLEEP_TEST_NOTICE,
+//                           true,
+//                           K_MSEC(200));
+    
+//     simulate_button_click(&reset_button);
+//     events = k_event_wait(&program_test_events,
+//                           RESET_TEST_NOTICE,
+//                           true,
+//                           K_MSEC(200));
+//     (void) events;
+    
+//     assert_led_blink_freq(&heartbeat_led, 2000, 1, 1, "heartbeat");
+//     assert_led_blink_freq(&iv_pump_led, 2000, 2, 1, "iv_pump");
+//     assert_led_blink_freq(&buzzer_led, 2000, 2, 1, "buzzer");
+//     assert_led_off(&error_led);
+// }
 
+// /* freq down + freq down + check */
+// ZTEST(state_machine_tests, test_02_freq_up_one_test)
+// {
+//     start_main(150);
+    
+//     simulate_button_click(&freq_down_button);
+//     uint32_t events = k_event_wait(&program_test_events,
+//                                    FREQ_DOWN_TEST_NOTICE,
+//                                    true,
+//                                    K_MSEC(200));
+    
+//     simulate_button_click(&freq_down_button);
+//     // events = k_event_wait(&program_test_events,
+//     //                       FREQ_DOWN_TEST_NOTICE,
+//     //                       true,
+//     //                       K_MSEC(200));
+    
+//     events = k_event_wait(&program_test_events,
+//                           ERROR_TEST_NOTICE,
+//                           true,
+//                           K_MSEC(200));
+//     (void) events;
+    
+//     assert_led_blink_freq(&heartbeat_led, 2000, 1, 1, "heartbeat");
+//     assert_led_off(&iv_pump_led);
+//     assert_led_off(&buzzer_led);
+//     assert_led_on(&error_led);
+// }
 
 
 
@@ -306,10 +454,10 @@ ZTEST(state_machine_tests, test_01_default_frequencies)
  * down one, reset -> freq 2, hb still 1
  * sleep -> not blinking
  * sleep, sleep -> blinking
- * 
- * up two, sleep, sleep -> freq 4, hb still 1
+ * up one, sleep, sleep -> freq 4, hb still 1
  * up one, sleep, reset -> freq 2, hb still 1
  * down two -> error on, hb still 1
+ * 
  * up four -> error on, hb still 1
  * down two, reset -> freq 2, hb still 1
  */

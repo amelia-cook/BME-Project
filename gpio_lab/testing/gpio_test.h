@@ -3,6 +3,8 @@
 
 #include "bme554_lib.h"
 
+#define HB_LED_FREQ 1
+
 /* ------------------------------------------------------------------ */
 /*  Thread config for running student_main in background              */
 /* ------------------------------------------------------------------ */

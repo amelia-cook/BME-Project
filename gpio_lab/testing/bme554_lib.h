@@ -50,7 +50,7 @@ extern struct k_event program_test_events;
 
 #define RESET_STATUS()                                              \
 {                                                                   \
-    k_event_post(&program_test_events, ERROR_TEST_NOTICE);          \
+    k_event_post(&program_test_events, RESET_TEST_NOTICE);          \
 }
 
 #define SLEEP_STATE()                                              \

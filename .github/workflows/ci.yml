@@ -20,6 +20,23 @@ jobs:
           west init
           west update -o=--depth=1 -n
       
+      - name: Check code specs
+        run: |
+          set -e
+          cd gpio_lab
+          grep -Eq '#define[[:space:]]+LED_BLINK_FREQ_HZ[[:space:]]+2' src/main.c
+          grep -Eq '#define[[:space:]]+FREQ_UP_INC_HZ[[:space:]]+1' src/main.c
+          grep -Eq '#define[[:space:]]+FREQ_DOWN_INC_HZ[[:space:]]+1' src/main.c
+          grep -Eq 'heartbeat_led' src/main.c
+          grep -Eq 'iv_pump_led' src/main.c
+          grep -Eq 'buzzer_led' src/main.c
+          grep -Eq 'error_led' src/main.c
+          grep -Eq 'sleep_button' src/main.c
+          grep -Eq 'freq_up_button' src/main.c
+          grep -Eq 'freq_down_button' src/main.c
+          grep -Eq 'reset_button' src/main.c
+      # also button and led names!!
+      
       - name: Build for native_sim
         run: |
           cd gpio_lab
