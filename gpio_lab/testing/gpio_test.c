@@ -55,12 +55,6 @@ static void start_main(int settle_ms)
 /*  Helpers                                                             */
 /* ------------------------------------------------------------------ */
 
-// /** Read logical LED state (true = illuminated) */
-// static inline bool led_is_on(const struct gpio_dt_spec *led)
-// {
-//     return gpio_pin_get_dt(led) > 0;
-// }
-
 /**
  * Assert that an LED toggles at approximately the expected frequency.
  */
@@ -83,7 +77,7 @@ static void assert_led_blink_freq(const struct gpio_dt_spec *led,
             toggles++;
             last = now;
         }
-        k_busy_wait(200);  // 1 ms
+        k_msleep(1);  // 1 ms
     }
 
     /* Step 2 – compute frequency in Hz */
@@ -105,6 +99,24 @@ static void simulate_button_click(const struct gpio_dt_spec *button)
     
     gpio_emul_input_set(button->port, button->pin, 0);
     // gpio_emul_fire_callbacks(button->port, button->pin);
+}
+
+/* Assert that an LED is OFF */
+static void assert_led_off(const struct gpio_dt_spec *led)
+{
+    int val = gpio_pin_get_dt(led);
+    zassert_equal(val, 0,
+                  "Expected LED on pin %d to be OFF, but value is %d",
+                  led->pin, val);
+}
+
+/* Assert that an LED is ON */
+static void assert_led_on(const struct gpio_dt_spec *led)
+{
+    int val = gpio_pin_get_dt(led);
+    zassert_not_equal(val, 0,
+                      "Expected LED on pin %d to be ON, but value is %d",
+                      led->pin, val);
 }
 
 /* ------------------------------------------------------------------ */
@@ -138,9 +150,10 @@ ZTEST(state_machine_tests, test_01_default_frequencies)
 {
     start_main(150);
     
-    assert_led_blink_freq(&heartbeat_led, 4000, 1, 1, "heartbeat");
-    assert_led_blink_freq(&iv_pump_led, 4000, 2, 1, "iv_pump");
-    assert_led_blink_freq(&buzzer_led, 4000, 2, 1, "buzzer");
+    assert_led_blink_freq(&heartbeat_led, 2000, 1, 1, "heartbeat");
+    assert_led_blink_freq(&iv_pump_led, 2000, 2, 1, "iv_pump");
+    assert_led_blink_freq(&buzzer_led, 2000, 2, 1, "buzzer");
+    assert_led_off(&error_led);
 }
 
 
@@ -164,6 +177,7 @@ ZTEST(state_machine_tests, test_01_default_frequencies)
 //     assert_led_blink_freq(&heartbeat_led, 2000, 1, 1, "heartbeat");
 //     assert_led_blink_freq(&iv_pump_led, 2000, 3, 1, "iv_pump");
 //     assert_led_blink_freq(&buzzer_led, 2000, 3, 1, "buzzer");
+//     assert_led_off(&error_led);
 // }
 
 // /* freq down once + check */
@@ -181,6 +195,7 @@ ZTEST(state_machine_tests, test_01_default_frequencies)
 //     assert_led_blink_freq(&heartbeat_led, 2000, 1, 1, "heartbeat");
 //     assert_led_blink_freq(&iv_pump_led, 2000, 1, 1, "iv_pump");
 //     assert_led_blink_freq(&buzzer_led, 2000, 1, 1, "buzzer");
+//     assert_led_off(&error_led);
 // }
 
 // /* freq up once + reset + check */
@@ -204,6 +219,7 @@ ZTEST(state_machine_tests, test_01_default_frequencies)
 //     assert_led_blink_freq(&heartbeat_led, 2000, 1, 1, "heartbeat");
 //     assert_led_blink_freq(&iv_pump_led, 2000, 2, 1, "iv_pump");
 //     assert_led_blink_freq(&buzzer_led, 2000, 2, 1, "buzzer");
+//     assert_led_off(&error_led);
 // }
 
 // /* freq down once + reset + check */
@@ -218,15 +234,16 @@ ZTEST(state_machine_tests, test_01_default_frequencies)
 //                                    K_MSEC(200));
     
 //     simulate_button_click(&reset_button);
-//     uint32_t events = k_event_wait(&program_test_events,
-//                                    RESET_BTN_TEST_NOTICE,
-//                                    true,
-//                                    K_MSEC(200));
+//     events = k_event_wait(&program_test_events,
+//                           RESET_BTN_TEST_NOTICE,
+//                           true,
+//                           K_MSEC(200));
 //     (void) events;
     
 //     assert_led_blink_freq(&heartbeat_led, 2000, 1, 1, "heartbeat");
 //     assert_led_blink_freq(&iv_pump_led, 2000, 2, 1, "iv_pump");
 //     assert_led_blink_freq(&buzzer_led, 2000, 2, 1, "buzzer");
+//     assert_led_off(&error_led);
 // }
 
 // /* sleep + check */
@@ -234,12 +251,46 @@ ZTEST(state_machine_tests, test_01_default_frequencies)
 // {
 //     start_main(150);
     
-//     simulate_button_click(&freq_down_button);
+//     simulate_button_click(&sleep_button);
 //     uint32_t events = k_event_wait(&program_test_events,
-//                                    FREQ_DOWN_TEST_NOTICE,
+//                                    SLEEP_BTN_TEST_NOTICE,
 //                                    true,
 //                                    K_MSEC(200));
+//     (void) events;
+    
+//     assert_led_blink_freq(&heartbeat_led, 2000, 1, 1, "heartbeat");
+//     assert_led_off(&iv_pump_led);
+//     assert_led_off(&buzzer_led);
+//     assert_led_off(&error_led);
 // }
+
+// /* sleep + sleep + check */
+// ZTEST(state_machine_tests, test_xx_name)
+// {
+//     start_main(150);
+    
+//     simulate_button_click(&sleep_button);
+//     uint32_t events = k_event_wait(&program_test_events,
+//                                    SLEEP_BTN_TEST_NOTICE,
+//                                    true,
+//                                    K_MSEC(200));
+    
+//     simulate_button_click(&sleep_button);
+//     uint32_t events = k_event_wait(&program_test_events,
+//                                    SLEEP_BTN_TEST_NOTICE,
+//                                    true,
+//                                    K_MSEC(200));
+//     (void) events;
+    
+//     assert_led_blink_freq(&heartbeat_led, 2000, 1, 1, "heartbeat");
+//     assert_led_blink_freq(&iv_pump_led, 2000, 2, 1, "iv_pump");
+//     assert_led_blink_freq(&buzzer_led, 2000, 2, 1, "buzzer");
+//     assert_led_off(&error_led);
+// }
+
+
+
+
 
 
 // /* description */
@@ -253,9 +304,9 @@ ZTEST(state_machine_tests, test_01_default_frequencies)
  * down one -> freq 1, hb still 1
  * up one, reset -> freq 2, hb still 1
  * down one, reset -> freq 2, hb still 1
- * 
  * sleep -> not blinking
  * sleep, sleep -> blinking
+ * 
  * up two, sleep, sleep -> freq 4, hb still 1
  * up one, sleep, reset -> freq 2, hb still 1
  * down two -> error on, hb still 1
