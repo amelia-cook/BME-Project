@@ -1,69 +1,60 @@
 / {
     aliases {
-        @LED1@ = &sim_led1;
-        @LED2@ = &sim_led2;
-        @LED3@ = &sim_led3;
-        @LED4@ = &sim_led4;
-        @BUTTON1@ = &sim_btn1;
-        @BUTTON2@ = &sim_btn2;
-        @BUTTON3@ = &sim_btn3;
-        @BUTTON4@ = &sim_btn4;
-    };
-
-    gpio0: gpio@0 {
-        compatible = "zephyr,gpio-emul";
-        reg = <0x0 0x4>;
-        rising-edge;
-        falling-edge;
-        high-level;
-        low-level;
-        gpio-controller;
-        #gpio-cells = <2>;
-        ngpios = <18>;      /* enough for pins 0-17 */
-        status = "okay";
+        @LED1@ = &sim_ledtest1;
+        @LED2@ = &sim_ledtest2;
+        @LED3@ = &sim_ledtest3;
+        @LED4@ = &sim_ledtest4;
+        @BUTTON1@ = &sim_buttontest1;
+        @BUTTON2@ = &sim_buttontest2;
+        @BUTTON3@ = &sim_buttontest3;
+        @BUTTON4@ = &sim_buttontest4;
     };
 
     sim_leds {
         compatible = "gpio-leds";
-        sim_led1: led_0 {
-            gpios = <&gpio0 0 GPIO_ACTIVE_HIGH>;
-            label = "SIM_LED1";
+        sim_ledtest1: led_10 {
+            gpios = <&gpio0 10 GPIO_ACTIVE_HIGH>;
+            label = "SIM_LEDTEST";
         };
-        sim_led2: led_1 {
-            gpios = <&gpio0 1 GPIO_ACTIVE_HIGH>;
-            label = "SIM_LED2";
+        sim_ledtest2: led_11 {
+            gpios = <&gpio0 11 GPIO_ACTIVE_HIGH>;
+            label = "SIM_LEDTEST";
         };
-        sim_led3: led_2 {
-            gpios = <&gpio0 2 GPIO_ACTIVE_HIGH>;
-            label = "SIM_LED3";
+        sim_ledtest3: led_12 {
+            gpios = <&gpio0 12 GPIO_ACTIVE_HIGH>;
+            label = "SIM_LEDTEST";
         };
-        sim_led4: led_3 {
-            gpios = <&gpio0 3 GPIO_ACTIVE_HIGH>;
-            label = "SIM_LED4";
+        sim_ledtest4: led_13 {
+            gpios = <&gpio0 13 GPIO_ACTIVE_HIGH>;
+            label = "SIM_LEDTEST";
         };
     };
-
+    
     sim_keys {
         compatible = "gpio-keys";
-        sim_btn1: key_4 {
-            gpios = <&gpio0 4 GPIO_ACTIVE_HIGH>;
-            label = "SIM_BTN1";
-            zephyr,code = <1>;
+        sim_buttontest1: key_14 {
+            gpios = <&gpio0 14 GPIO_ACTIVE_HIGH>;
+            label = "sim_buttontest1";
+            zephyr,code = <1>; /* KEY_ESC */
         };
-        sim_btn2: key_5 {
-            gpios = <&gpio0 5 GPIO_ACTIVE_HIGH>;
-            label = "SIM_BTN2";
-            zephyr,code = <2>;
+        sim_buttontest2: key_15 {
+            gpios = <&gpio0 15 GPIO_ACTIVE_HIGH>;
+            label = "SIM_buttontest2";
+            zephyr,code = <1>; /* KEY_ESC */
         };
-        sim_btn3: key_6 {
-            gpios = <&gpio0 6 GPIO_ACTIVE_HIGH>;
-            label = "SIM_BTN3";
-            zephyr,code = <3>;
+        sim_buttontest3: key_16 {
+            gpios = <&gpio0 16 GPIO_ACTIVE_HIGH>;
+            label = "SIM_buttontest3";
+            zephyr,code = <1>; /* KEY_ESC */
         };
-        sim_btn4: key_7 {
-            gpios = <&gpio0 7 GPIO_ACTIVE_HIGH>;
-            label = "SIM_BTN4";
-            zephyr,code = <4>;
+        sim_buttontest4: key_17 {
+            gpios = <&gpio0 17 GPIO_ACTIVE_HIGH>;
+            label = "SIM_buttontest4";
+            zephyr,code = <1>; /* KEY_ESC */
         };
     };
+};
+
+&gpio0 {
+    status = "okay";
 };
