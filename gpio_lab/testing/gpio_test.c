@@ -81,7 +81,7 @@ static void assert_led_blink_freq(const struct gpio_dt_spec *led,
             toggles++;
             last = now;
         }
-        k_msleep(5);  // keep sampling periodically
+        k_busy_wait(1000);  // 1 ms
     }
 
     /* Step 2 – compute frequency in Hz */
