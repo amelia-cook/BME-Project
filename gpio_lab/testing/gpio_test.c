@@ -112,7 +112,69 @@ static void assert_leds_blink_freq_fixed(const struct gpio_dt_spec *heartbeat_le
                                          int window_ms,
                                          int action_led_hz)  // configurable
 {
-    // Arrays for 4 LEDs
+    // // Arrays for 4 LEDs
+    // const struct gpio_dt_spec *leds[4] = { heartbeat_led, iv_pump_led, buzzer_led, error_led };
+    // const char *names[4] = { "heartbeat", "iv_pump", "buzzer", "error" };
+    // const int expected_hz[4] = { HB_LED_FREQ, action_led_hz, action_led_hz, 0 };
+    // const int tolerance[4] = { 1, 1, 1, 0 };
+    // const bool should_blink[4] = { true, true, true, false };
+
+    // bool last_state[4];
+    // int toggles[4] = {0};
+
+    // /* ---- DEBUG BLOCK: print port/pin/ret/val for each LED before polling ---- */
+    // for (int i = 0; i < 4; i++) {
+    //     gpio_port_value_t dbg_val;
+    //     int dbg_ret = gpio_emul_output_get(leds[i]->port, &dbg_val);
+    //     printk("DEBUG [%s]: port=%p pin=%d ret=%d raw_val=0x%08x bit=%d\n",
+    //            names[i],
+    //            (void *)leds[i]->port,
+    //            leds[i]->pin,
+    //            dbg_ret,
+    //            (unsigned int)dbg_val,
+    //            (int)((dbg_val >> leds[i]->pin) & 1));
+    // }
+    // /* ---- END DEBUG BLOCK ---- */
+
+    // // initialize last states
+    // for (int i = 0; i < 4; i++) {
+    //     last_state[i] = led_is_on(leds[i]);
+    // }
+
+    // int64_t end = k_uptime_get() + window_ms;
+
+    // // main polling loop
+    // while (k_uptime_get() < end) {
+    //     for (int i = 0; i < 4; i++) {
+    //         bool now = led_is_on(leds[i]);
+    //         if (now != last_state[i]) {
+    //             toggles[i]++;
+    //             last_state[i] = now;
+    //         }
+    //     }
+    //     k_msleep(1); // yield CPU so LED threads can run
+    // }
+
+    // // compute frequencies and assert
+    // int measured_hz[4];
+    // for (int i = 0; i < 4; i++) {
+    //     measured_hz[i] = (toggles[i] * 500) / window_ms; // each toggle = half cycle
+    //     if (should_blink[i]) {
+    //         zassert_within(measured_hz[i], expected_hz[i], tolerance[i],
+    //             "LED %s: expected ~%d Hz, measured ~%d Hz (%d toggles in %d ms)",
+    //             names[i], expected_hz[i], measured_hz[i], toggles[i], window_ms);
+    //     } else {
+    //         zassert_equal(measured_hz[i], 0,
+    //             "LED %s: should not blink but measured ~%d Hz (%d toggles in %d ms)",
+    //             names[i], measured_hz[i], toggles[i], window_ms);
+    //     }
+    // }
+
+    // // extra check: action LEDs must have same frequency
+    // zassert_equal(measured_hz[1], measured_hz[2],
+    //     "Action LEDs out of sync: iv_pump ~%d Hz, buzzer ~%d Hz",
+    //     measured_hz[1], measured_hz[2]);
+
     const struct gpio_dt_spec *leds[4] = { heartbeat_led, iv_pump_led, buzzer_led, error_led };
     const char *names[4] = { "heartbeat", "iv_pump", "buzzer", "error" };
     const int expected_hz[4] = { HB_LED_FREQ, action_led_hz, action_led_hz, 0 };
@@ -122,43 +184,39 @@ static void assert_leds_blink_freq_fixed(const struct gpio_dt_spec *heartbeat_le
     bool last_state[4];
     int toggles[4] = {0};
 
-    /* ---- DEBUG BLOCK: print port/pin/ret/val for each LED before polling ---- */
-    for (int i = 0; i < 4; i++) {
-        gpio_port_value_t dbg_val;
-        int dbg_ret = gpio_emul_output_get(leds[i]->port, &dbg_val);
-        printk("DEBUG [%s]: port=%p pin=%d ret=%d raw_val=0x%08x bit=%d\n",
-               names[i],
-               (void *)leds[i]->port,
-               leds[i]->pin,
-               dbg_ret,
-               (unsigned int)dbg_val,
-               (int)((dbg_val >> leds[i]->pin) & 1));
-    }
-    /* ---- END DEBUG BLOCK ---- */
-
-    // initialize last states
+    /* initialize last states */
     for (int i = 0; i < 4; i++) {
         last_state[i] = led_is_on(leds[i]);
     }
 
-    int64_t end = k_uptime_get() + window_ms;
+    /* Snapshot the start time AFTER initializing state,
+     * so the window is clean from this point forward */
+    int64_t start = k_uptime_get();
+    int64_t end   = start + window_ms;
 
-    // main polling loop
+    printk("POLL START: uptime=%lld end=%lld\n", start, end);
+
+    /* main polling loop */
     while (k_uptime_get() < end) {
         for (int i = 0; i < 4; i++) {
             bool now = led_is_on(leds[i]);
             if (now != last_state[i]) {
                 toggles[i]++;
                 last_state[i] = now;
+                printk("TOGGLE [%s] -> %d at t=%lld (toggle #%d)\n",
+                       names[i], (int)now, k_uptime_get(), toggles[i]);
             }
         }
-        k_msleep(1); // yield CPU so LED threads can run
+        k_msleep(10); /* 10ms requested, ~20ms actual (one tick) — fine for 2Hz */
     }
 
-    // compute frequencies and assert
+    printk("POLL END: uptime=%lld toggles=[%d,%d,%d,%d]\n",
+           k_uptime_get(), toggles[0], toggles[1], toggles[2], toggles[3]);
+
+    /* compute frequencies and assert */
     int measured_hz[4];
     for (int i = 0; i < 4; i++) {
-        measured_hz[i] = (toggles[i] * 500) / window_ms; // each toggle = half cycle
+        measured_hz[i] = (toggles[i] * 500) / window_ms;
         if (should_blink[i]) {
             zassert_within(measured_hz[i], expected_hz[i], tolerance[i],
                 "LED %s: expected ~%d Hz, measured ~%d Hz (%d toggles in %d ms)",
@@ -170,7 +228,6 @@ static void assert_leds_blink_freq_fixed(const struct gpio_dt_spec *heartbeat_le
         }
     }
 
-    // extra check: action LEDs must have same frequency
     zassert_equal(measured_hz[1], measured_hz[2],
         "Action LEDs out of sync: iv_pump ~%d Hz, buzzer ~%d Hz",
         measured_hz[1], measured_hz[2]);
@@ -238,7 +295,7 @@ static void after(void *)
 /* check default frequencies frequency */
 ZTEST(state_machine_tests, test_01_default_frequencies)
 {
-    start_main(150);
+    start_main(500);
 
     // Suppose action LEDs should blink at 2 Hz
     assert_leds_blink_freq_fixed(&heartbeat_led,
