@@ -96,12 +96,12 @@ static void assert_led_blink_freq(const struct gpio_dt_spec *led,
 static void simulate_button_click(const struct gpio_dt_spec *button)
 {
     gpio_emul_input_set(button->port, button->pin, 1);
-    gpio_emul_fire_callbacks(button->port, button->pin);
+    // gpio_emul_fire_callbacks(button->port, button->pin);
     
     k_sleep(K_MSEC(5));
     
     gpio_emul_input_set(button->port, button->pin, 0);
-    gpio_emul_fire_callbacks(button->port, button->pin);
+    // gpio_emul_fire_callbacks(button->port, button->pin);
 }
 
 /* ------------------------------------------------------------------ */
