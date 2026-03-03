@@ -149,94 +149,104 @@ ZTEST(state_machine_tests, test_01_default_frequencies)
 
 
 
-/* freq up once + check */
-ZTEST(state_machine_tests, test_02_freq_up_one_test)
-{
-    start_main(150);
+// /* freq up once + check */
+// ZTEST(state_machine_tests, test_02_freq_up_one_test)
+// {
+//     start_main(150);
     
-    simulate_button_click(&freq_up_button);
-    uint32_t events = k_event_wait(&program_test_events,
-                                   FREQ_UP_TEST_NOTICE,
-                                   true,
-                                   K_MSEC(200));
-    (void) events;
+//     simulate_button_click(&freq_up_button);
+//     uint32_t events = k_event_wait(&program_test_events,
+//                                    FREQ_UP_TEST_NOTICE,
+//                                    true,
+//                                    K_MSEC(200));
+//     (void) events;
     
-    assert_led_blink_freq(&heartbeat_led, 2000, 1, 1, "heartbeat");
-    assert_led_blink_freq(&iv_pump_led, 2000, 3, 1, "iv_pump");
-    assert_led_blink_freq(&buzzer_led, 2000, 3, 1, "buzzer");
-}
+//     assert_led_blink_freq(&heartbeat_led, 2000, 1, 1, "heartbeat");
+//     assert_led_blink_freq(&iv_pump_led, 2000, 3, 1, "iv_pump");
+//     assert_led_blink_freq(&buzzer_led, 2000, 3, 1, "buzzer");
+// }
 
-/* freq down once + check */
-ZTEST(state_machine_tests, test_xx_name)
-{
-    start_main(150);
+// /* freq down once + check */
+// ZTEST(state_machine_tests, test_xx_name)
+// {
+//     start_main(150);
     
-    simulate_button_click(&freq_down_button);
-    uint32_t events = k_event_wait(&program_test_events,
-                                   FREQ_DOWN_TEST_NOTICE,
-                                   true,
-                                   K_MSEC(200));
-    (void) events;
+//     simulate_button_click(&freq_down_button);
+//     uint32_t events = k_event_wait(&program_test_events,
+//                                    FREQ_DOWN_TEST_NOTICE,
+//                                    true,
+//                                    K_MSEC(200));
+//     (void) events;
     
-    assert_led_blink_freq(&heartbeat_led, 2000, 1, 1, "heartbeat");
-    assert_led_blink_freq(&iv_pump_led, 2000, 1, 1, "iv_pump");
-    assert_led_blink_freq(&buzzer_led, 2000, 1, 1, "buzzer");
-}
+//     assert_led_blink_freq(&heartbeat_led, 2000, 1, 1, "heartbeat");
+//     assert_led_blink_freq(&iv_pump_led, 2000, 1, 1, "iv_pump");
+//     assert_led_blink_freq(&buzzer_led, 2000, 1, 1, "buzzer");
+// }
 
-/* freq up once + reset + check */
-ZTEST(state_machine_tests, test_02_freq_up_one_test)
-{
-    start_main(150);
+// /* freq up once + reset + check */
+// ZTEST(state_machine_tests, test_02_freq_up_one_test)
+// {
+//     start_main(150);
     
-    simulate_button_click(&freq_up_button);
-    uint32_t events = k_event_wait(&program_test_events,
-                                   FREQ_UP_TEST_NOTICE,
-                                   true,
-                                   K_MSEC(200));
+//     simulate_button_click(&freq_up_button);
+//     uint32_t events = k_event_wait(&program_test_events,
+//                                    FREQ_UP_TEST_NOTICE,
+//                                    true,
+//                                    K_MSEC(200));
     
-    simulate_button_click(&reset_button);
-    uint32_t events = k_event_wait(&program_test_events,
-                                   RESET_BTN_TEST_NOTICE,
-                                   true,
-                                   K_MSEC(200));
-    (void) events;
+//     simulate_button_click(&reset_button);
+//     events = k_event_wait(&program_test_events,
+//                           RESET_BTN_TEST_NOTICE,
+//                           true,
+//                           K_MSEC(200));
+//     (void) events;
     
-    assert_led_blink_freq(&heartbeat_led, 2000, 1, 1, "heartbeat");
-    assert_led_blink_freq(&iv_pump_led, 2000, 2, 1, "iv_pump");
-    assert_led_blink_freq(&buzzer_led, 2000, 2, 1, "buzzer");
-}
+//     assert_led_blink_freq(&heartbeat_led, 2000, 1, 1, "heartbeat");
+//     assert_led_blink_freq(&iv_pump_led, 2000, 2, 1, "iv_pump");
+//     assert_led_blink_freq(&buzzer_led, 2000, 2, 1, "buzzer");
+// }
 
-/* freq down once + reset + check */
-ZTEST(state_machine_tests, test_02_freq_up_one_test)
-{
-    start_main(150);
+// /* freq down once + reset + check */
+// ZTEST(state_machine_tests, test_02_freq_up_one_test)
+// {
+//     start_main(150);
     
-    simulate_button_click(&freq_down_button);
-    uint32_t events = k_event_wait(&program_test_events,
-                                   FREQ_DOWN_TEST_NOTICE,
-                                   true,
-                                   K_MSEC(200));
+//     simulate_button_click(&freq_down_button);
+//     uint32_t events = k_event_wait(&program_test_events,
+//                                    FREQ_DOWN_TEST_NOTICE,
+//                                    true,
+//                                    K_MSEC(200));
     
-    simulate_button_click(&reset_button);
-    uint32_t events = k_event_wait(&program_test_events,
-                                   RESET_BTN_TEST_NOTICE,
-                                   true,
-                                   K_MSEC(200));
-    (void) events;
+//     simulate_button_click(&reset_button);
+//     uint32_t events = k_event_wait(&program_test_events,
+//                                    RESET_BTN_TEST_NOTICE,
+//                                    true,
+//                                    K_MSEC(200));
+//     (void) events;
     
-    assert_led_blink_freq(&heartbeat_led, 2000, 1, 1, "heartbeat");
-    assert_led_blink_freq(&iv_pump_led, 2000, 2, 1, "iv_pump");
-    assert_led_blink_freq(&buzzer_led, 2000, 2, 1, "buzzer");
-}
+//     assert_led_blink_freq(&heartbeat_led, 2000, 1, 1, "heartbeat");
+//     assert_led_blink_freq(&iv_pump_led, 2000, 2, 1, "iv_pump");
+//     assert_led_blink_freq(&buzzer_led, 2000, 2, 1, "buzzer");
+// }
+
+// /* sleep + check */
+// ZTEST(state_machine_tests, test_xx_name)
+// {
+//     start_main(150);
+    
+//     simulate_button_click(&freq_down_button);
+//     uint32_t events = k_event_wait(&program_test_events,
+//                                    FREQ_DOWN_TEST_NOTICE,
+//                                    true,
+//                                    K_MSEC(200));
+// }
 
 
-
-
-/* description */
-ZTEST(state_machine_tests, test_xx_name)
-{
-    start_main(150);
-}
+// /* description */
+// ZTEST(state_machine_tests, test_xx_name)
+// {
+//     start_main(150);
+// }
 
 /**
  * up one -> freq 3, hb still 1
