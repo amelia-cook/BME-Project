@@ -57,17 +57,7 @@ static void start_main(int settle_ms)
 
 static bool led_is_on(const struct gpio_dt_spec *led)
 {
-    gpio_port_value_t val;
-    int ret = gpio_emul_output_get(led->port, &val);
-    if (ret < 0) {
-        printk("gpio_emul_output_get FAILED: %d\n", ret);
-        return false;
-    }
-    /* val is a bitmask of all pins; extract the specific pin and
-     * account for active polarity (GPIO_ACTIVE_LOW flips the logic) */
-    bool raw = (val >> led->pin) & 1;
-    bool active_low = (led->dt_flags & GPIO_ACTIVE_LOW) != 0;
-    return active_low ? !raw : raw;
+    return gpio_pin_get_dt(led) > 0;
 }
 
 // /**
