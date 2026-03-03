@@ -135,14 +135,14 @@ static void assert_leds_blink_freq_fixed(const struct gpio_dt_spec *heartbeat_le
                 "LED %s: expected ~%d Hz, measured ~%d Hz (%d toggles in %d ms)",
                 names[i], expected_hz[i], measured_hz[i], toggles[i], window_ms);
         } else {
-            zassert_eq(measured_hz[i], 0,
+            zassert_equal(measured_hz[i], 0,
                 "LED %s: should not blink but measured ~%d Hz (%d toggles in %d ms)",
                 names[i], measured_hz[i], toggles[i], window_ms);
         }
     }
 
     // extra check: action LEDs must have same frequency
-    zassert_eq(measured_hz[1], measured_hz[2],
+    zassert_equal(measured_hz[1], measured_hz[2],
         "Action LEDs out of sync: iv_pump ~%d Hz, buzzer ~%d Hz",
         measured_hz[1], measured_hz[2]);
 }
@@ -208,10 +208,10 @@ ZTEST(state_machine_tests, test_01_default_frequencies)
     start_main(150);
 
     // Suppose action LEDs should blink at 2 Hz
-    assert_leds_blink_freq_fixed(heartbeat_led,
-                                 iv_pump_led,
-                                 buzzer_led,
-                                 error_led,
+    assert_leds_blink_freq_fixed(&heartbeat_led,
+                                 &iv_pump_led,
+                                 &buzzer_led,
+                                 &error_led,
                                  4000,
                                  2);
 }
