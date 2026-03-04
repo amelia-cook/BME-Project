@@ -5,6 +5,8 @@
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/gpio/gpio_emul.h>
 
+static void stop_main(void);
+
 /* ------------------------------------------------------------------ */
 /*  Fixture                                                             */
 /* ------------------------------------------------------------------ */
