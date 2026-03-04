@@ -6,6 +6,28 @@
 #include <zephyr/drivers/gpio/gpio_emul.h>
 
 /* ------------------------------------------------------------------ */
+/*  Fixture                                                             */
+/* ------------------------------------------------------------------ */
+
+static void before(void *)
+{
+    stop_main();  /* abort any leftover thread from the previous test */
+    
+    k_event_clear(&program_test_events, FREQ_UP_TEST_NOTICE);
+    k_event_clear(&program_test_events, FREQ_DOWN_TEST_NOTICE);
+    k_event_clear(&program_test_events, RESET_BTN_TEST_NOTICE);
+    k_event_clear(&program_test_events, SLEEP_BTN_TEST_NOTICE);
+    k_event_clear(&program_test_events, ERROR_TEST_NOTICE);
+    k_event_clear(&program_test_events, RESET_TEST_NOTICE);
+    k_event_clear(&program_test_events, SLEEP_TEST_NOTICE);
+}
+
+static void after(void *)
+{
+    stop_main();
+}
+
+/* ------------------------------------------------------------------ */
 /*  Thread boilerplate                                                */
 /* ------------------------------------------------------------------ */
 
@@ -253,28 +275,6 @@ static void assert_led_on(const struct gpio_dt_spec *led)
     zassert_equal(led_is_on(led), true, "Expected LED on pin %d to be ON, but it is OFF", led->pin);
 }
 
-/* ------------------------------------------------------------------ */
-/*  Fixture                                                             */
-/* ------------------------------------------------------------------ */
-
-static void before(void *)
-{
-    stop_main();  /* abort any leftover thread from the previous test */
-    
-    k_event_clear(&program_test_events, FREQ_UP_TEST_NOTICE);
-    k_event_clear(&program_test_events, FREQ_DOWN_TEST_NOTICE);
-    k_event_clear(&program_test_events, RESET_BTN_TEST_NOTICE);
-    k_event_clear(&program_test_events, SLEEP_BTN_TEST_NOTICE);
-    k_event_clear(&program_test_events, ERROR_TEST_NOTICE);
-    k_event_clear(&program_test_events, RESET_TEST_NOTICE);
-    k_event_clear(&program_test_events, SLEEP_TEST_NOTICE);
-}
-
-static void after(void *)
-{
-    stop_main();
-}
-
 /* ================================================================== */
 /*  TESTS                                                             */
 /* ================================================================== */
@@ -296,6 +296,16 @@ static void after(void *)
 ZTEST(state_machine_tests, test_01_default_frequencies)
 {
     start_main(150);
+    
+    printk("heartbeat LED port=%p pin=%d\n",
+       heartbeat_led.port,
+       heartbeat_led.pin);
+    printk("iv_pump LED port=%p pin=%d\n",
+       iv_pump_led.port,
+       iv_pump_led.pin);
+    printk("buzzer LED port=%p pin=%d\n",
+       buzzer_led.port,
+       buzzer_led.pin);
     
     // assert_led_blink_freq(&heartbeat_led, 4000, 1, 1, "heartbeat");
     assert_led_blink_freq(&iv_pump_led, 4000, 2, 1, "iv_pump");
