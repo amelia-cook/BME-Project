@@ -231,7 +231,7 @@ static void assert_led_blink_freq(const struct gpio_dt_spec *led,
             toggles++;
             last = now;
         }
-        k_busy_wait(200);  // 1 ms
+        k_sleep(K_MSEC(1));
     }
 
     /* Step 2 – compute frequency in Hz */
@@ -295,8 +295,6 @@ static void assert_led_on(const struct gpio_dt_spec *led)
 //                                  2);
 // }
 
-enum states { INIT, BLINKING_ENTRY, BLINKING_RUN, SLEEP, RESET, ERROR };
-
 ZTEST(state_machine_tests, test_01_default_frequencies)
 {
     start_main(1000);
@@ -310,9 +308,6 @@ ZTEST(state_machine_tests, test_01_default_frequencies)
     printk("buzzer LED port=%p pin=%d\n",
        buzzer_led.port,
        buzzer_led.pin);
-    
-    printk("state = %d\n", state);
-    printk("init: %d, error, %d, blinking_run: %d\n", INIT, ERROR, BLINKING_RUN);
     
     // assert_led_blink_freq(&heartbeat_led, 4000, 1, 1, "heartbeat");
     assert_led_blink_freq(&iv_pump_led, 4000, 2, 1, "iv_pump");
