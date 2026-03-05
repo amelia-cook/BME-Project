@@ -1,8 +1,6 @@
 #include "gpio_test.h"
 
 #include <zephyr/ztest.h>
-#include <zephyr/kernel.h>
-#include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/gpio/gpio_emul.h>
 
 static void stop_main(void);
@@ -33,11 +31,6 @@ static void after(void *)
 /* ------------------------------------------------------------------ */
 /*  Thread boilerplate                                                */
 /* ------------------------------------------------------------------ */
-
-K_THREAD_STACK_DEFINE(student_main_stack, STUDENT_MAIN_STACK_SIZE);
-static struct k_thread student_main_thread;
-static k_tid_t         student_main_tid;
-static volatile bool   main_running = false;
 
 static void student_main_entry(void *, void *, void *)
 {
