@@ -138,6 +138,15 @@ static void assert_led_on(const struct gpio_dt_spec *led, const char *led_name)
         led_name, led->pin);
 }
 
+static void assert_error_led_on(const struct gpio_dt_spec *led, const char *led_name)
+{
+    int val;
+    gpio_emul_output_get(led->port, led->pin, &val);
+    zassert_equal(val, 1,
+        "Expected LED %s on pin %d to be ON, but it is OFF",
+        led_name, led->pin);
+}
+
 /* ================================================================== */
 /*  TESTS                                                             */
 /* ================================================================== */
@@ -364,7 +373,8 @@ ZTEST(state_machine_tests, test_10_freq_down_twice)
     assert_led_blink_freq(&heartbeat_led, 2000, 1, 1, "heartbeat");
     assert_led_off(&iv_pump_led, "iv_pump");
     assert_led_off(&buzzer_led, "buzzer");
-    assert_led_on(&error_led, "error");
+    // assert_led_on(&error_led, "error");
+    assert_error_led_on(&error_led, "error");
 }
 
 // ZTEST(state_machine_tests, test_10_freq_down_twice)
