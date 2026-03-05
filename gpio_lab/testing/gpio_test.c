@@ -140,8 +140,7 @@ static void assert_led_on(const struct gpio_dt_spec *led, const char *led_name)
 
 static void assert_error_led_on(const struct gpio_dt_spec *led, const char *led_name)
 {
-    int val;
-    gpio_emul_output_get(led->port, led->pin, &val);
+    int val = gpio_emul_output_get(led->port, led->pin);
     zassert_equal(val, 1,
         "Expected LED %s on pin %d to be ON, but it is OFF",
         led_name, led->pin);
