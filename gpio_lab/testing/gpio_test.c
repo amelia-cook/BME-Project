@@ -352,19 +352,10 @@ ZTEST(state_machine_tests, test_01_default_frequencies)
 {
     start_main(1000);
     
-    printk("heartbeat LED port=%p pin=%d\n",
-       heartbeat_led.port,
-       heartbeat_led.pin);
-    printk("iv_pump LED port=%p pin=%d\n",
-       iv_pump_led.port,
-       iv_pump_led.pin);
-    printk("buzzer LED port=%p pin=%d\n",
-       buzzer_led.port,
-       buzzer_led.pin);
-    
-    // assert_led_blink_freq(&heartbeat_led, 4000, 1, 1, "heartbeat");
+    assert_led_blink_freq(&heartbeat_led, 4000, 1, 1, "heartbeat");
     assert_led_blink_freq(&iv_pump_led, 4000, 2, 1, "iv_pump");
     assert_led_blink_freq(&buzzer_led, 4000, 2, 1, "buzzer");
+    assert_led_off(&error_led);
 }
 
 
