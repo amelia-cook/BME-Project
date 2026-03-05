@@ -371,6 +371,8 @@ ZTEST(state_machine_tests, test_10_freq_down_twice)
     assert_led_on(&error_led, "error");
 }
 
+// not sure why my code isnt being pished - test commit 
+
 
 // ZTEST(state_machine_tests, test_10_freq_down_twice)
 // {
