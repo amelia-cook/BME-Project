@@ -26,8 +26,8 @@ extern const struct gpio_dt_spec iv_pump_led;
 extern const struct gpio_dt_spec buzzer_led;
 extern const struct gpio_dt_spec error_led;
 
-extern int state;
-
 extern int student_main(void);  /* renamed by CMake */
+
+static volatile int g_led_toggles = 0;
 
 #endif // GPIO_TEST_H

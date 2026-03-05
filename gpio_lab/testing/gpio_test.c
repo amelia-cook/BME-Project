@@ -79,141 +79,6 @@ static void start_main(int settle_ms)
 /*  Helpers                                                             */
 /* ------------------------------------------------------------------ */
 
-static bool led_is_on(const struct gpio_dt_spec *led)
-{
-    return gpio_pin_get_dt(led) > 0;
-}
-
-// static void assert_leds_blink_freq_fixed(const struct gpio_dt_spec *heartbeat_led,
-//                                          const struct gpio_dt_spec *iv_pump_led,
-//                                          const struct gpio_dt_spec *buzzer_led,
-//                                          const struct gpio_dt_spec *error_led,
-//                                          int window_ms,
-//                                          int action_led_hz)  // configurable
-// {
-//     // // Arrays for 4 LEDs
-//     // const struct gpio_dt_spec *leds[4] = { heartbeat_led, iv_pump_led, buzzer_led, error_led };
-//     // const char *names[4] = { "heartbeat", "iv_pump", "buzzer", "error" };
-//     // const int expected_hz[4] = { HB_LED_FREQ, action_led_hz, action_led_hz, 0 };
-//     // const int tolerance[4] = { 1, 1, 1, 0 };
-//     // const bool should_blink[4] = { true, true, true, false };
-
-//     // bool last_state[4];
-//     // int toggles[4] = {0};
-
-//     // /* ---- DEBUG BLOCK: print port/pin/ret/val for each LED before polling ---- */
-//     // for (int i = 0; i < 4; i++) {
-//     //     gpio_port_value_t dbg_val;
-//     //     int dbg_ret = gpio_emul_output_get(leds[i]->port, &dbg_val);
-//     //     printk("DEBUG [%s]: port=%p pin=%d ret=%d raw_val=0x%08x bit=%d\n",
-//     //            names[i],
-//     //            (void *)leds[i]->port,
-//     //            leds[i]->pin,
-//     //            dbg_ret,
-//     //            (unsigned int)dbg_val,
-//     //            (int)((dbg_val >> leds[i]->pin) & 1));
-//     // }
-//     // /* ---- END DEBUG BLOCK ---- */
-
-//     // // initialize last states
-//     // for (int i = 0; i < 4; i++) {
-//     //     last_state[i] = led_is_on(leds[i]);
-//     // }
-
-//     // int64_t end = k_uptime_get() + window_ms;
-
-//     // // main polling loop
-//     // while (k_uptime_get() < end) {
-//     //     for (int i = 0; i < 4; i++) {
-//     //         bool now = led_is_on(leds[i]);
-//     //         if (now != last_state[i]) {
-//     //             toggles[i]++;
-//     //             last_state[i] = now;
-//     //         }
-//     //     }
-//     //     k_msleep(1); // yield CPU so LED threads can run
-//     // }
-
-//     // // compute frequencies and assert
-//     // int measured_hz[4];
-//     // for (int i = 0; i < 4; i++) {
-//     //     measured_hz[i] = (toggles[i] * 500) / window_ms; // each toggle = half cycle
-//     //     if (should_blink[i]) {
-//     //         zassert_within(measured_hz[i], expected_hz[i], tolerance[i],
-//     //             "LED %s: expected ~%d Hz, measured ~%d Hz (%d toggles in %d ms)",
-//     //             names[i], expected_hz[i], measured_hz[i], toggles[i], window_ms);
-//     //     } else {
-//     //         zassert_equal(measured_hz[i], 0,
-//     //             "LED %s: should not blink but measured ~%d Hz (%d toggles in %d ms)",
-//     //             names[i], measured_hz[i], toggles[i], window_ms);
-//     //     }
-//     // }
-
-//     // // extra check: action LEDs must have same frequency
-//     // zassert_equal(measured_hz[1], measured_hz[2],
-//     //     "Action LEDs out of sync: iv_pump ~%d Hz, buzzer ~%d Hz",
-//     //     measured_hz[1], measured_hz[2]);
-
-//     const struct gpio_dt_spec *leds[4] = { heartbeat_led, iv_pump_led, buzzer_led, error_led };
-//     const char *names[4] = { "heartbeat", "iv_pump", "buzzer", "error" };
-//     const int expected_hz[4] = { HB_LED_FREQ, action_led_hz, action_led_hz, 0 };
-//     const int tolerance[4] = { 1, 1, 1, 0 };
-//     const bool should_blink[4] = { true, true, true, false };
-
-//     bool last_state[4];
-//     int toggles[4] = {0};
-
-//     /* initialize last states */
-//     for (int i = 0; i < 4; i++) {
-//         last_state[i] = led_is_on(leds[i]);
-//     }
-
-//     /* Snapshot the start time AFTER initializing state,
-//      * so the window is clean from this point forward */
-//     int64_t start = k_uptime_get();
-//     int64_t end   = start + window_ms;
-
-//     printk("POLL START: uptime=%lld end=%lld\n", start, end);
-
-//     /* main polling loop */
-//     while (k_uptime_get() < end) {
-//         for (int i = 0; i < 4; i++) {
-//             bool now = led_is_on(leds[i]);
-//             if (now != last_state[i]) {
-//                 toggles[i]++;
-//                 last_state[i] = now;
-//                 printk("TOGGLE [%s] -> %d at t=%lld (toggle #%d)\n",
-//                        names[i], (int)now, k_uptime_get(), toggles[i]);
-//             }
-//         }
-//         k_msleep(1); /* 10ms requested, ~20ms actual (one tick) — fine for 2Hz */
-//     }
-
-//     printk("POLL END: uptime=%lld toggles=[%d,%d,%d,%d]\n",
-//            k_uptime_get(), toggles[0], toggles[1], toggles[2], toggles[3]);
-
-//     /* compute frequencies and assert */
-//     int measured_hz[4];
-//     for (int i = 0; i < 4; i++) {
-//         measured_hz[i] = (toggles[i] * 500) / window_ms;
-//         if (should_blink[i]) {
-//             zassert_within(measured_hz[i], expected_hz[i], tolerance[i],
-//                 "LED %s: expected ~%d Hz, measured ~%d Hz (%d toggles in %d ms)",
-//                 names[i], expected_hz[i], measured_hz[i], toggles[i], window_ms);
-//         } else {
-//             zassert_equal(measured_hz[i], 0,
-//                 "LED %s: should not blink but measured ~%d Hz (%d toggles in %d ms)",
-//                 names[i], measured_hz[i], toggles[i], window_ms);
-//         }
-//     }
-
-//     zassert_equal(measured_hz[1], measured_hz[2],
-//         "Action LEDs out of sync: iv_pump ~%d Hz, buzzer ~%d Hz",
-//         measured_hz[1], measured_hz[2]);
-// }
-
-static volatile int g_led_toggles = 0;
-
 static void led_edge_callback(const struct device *dev,
                               struct gpio_callback *cb,
                               uint32_t pins)
@@ -253,50 +118,6 @@ static void assert_led_blink_freq(const struct gpio_dt_spec *led,
         led_name, expected_hz, measured_hz, g_led_toggles, window_ms);
 }
 
-// static void assert_led_blink_freq(const struct gpio_dt_spec *led,
-//                                   int window_ms,
-//                                   int expected_hz,
-//                                   int tolerance_hz,
-//                                   const char *led_name)
-// {
-//     /* --- Wait for first edge so we don't measure a static phase --- */
-//     int64_t sync_start = k_uptime_get();
-//     int initial = gpio_pin_get_dt(led);
-//     zassert_true(initial >= 0, "LED %s: gpio read failed", led_name);
-
-//     while (gpio_pin_get_dt(led) == initial) {
-//         if (k_uptime_get() - sync_start > 2000) {
-//             zassert_true(false, "LED %s: never toggled (sync timeout)", led_name);
-//         }
-//         k_sleep(K_MSEC(1));
-//     }
-
-//     /* --- Now measure over fixed window --- */
-//     int toggles = 0;
-//     int64_t end = k_uptime_get() + window_ms;
-
-//     int last = gpio_pin_get_dt(led);
-//     zassert_true(last >= 0, "LED %s: gpio read failed", led_name);
-
-//     while (k_uptime_get() < end) {
-//         int now = gpio_pin_get_dt(led);
-
-//         if (now >= 0 && now != last) {
-//             toggles++;
-//             last = now;
-//         }
-
-//         k_sleep(K_MSEC(1));
-//     }
-
-//     /* Each toggle = half cycle */
-//     int measured_hz = (toggles * 500) / window_ms;
-
-//     zassert_within(measured_hz, expected_hz, tolerance_hz,
-//         "LED %s: expected ~%d Hz but measured ~%d Hz (%d toggles in %d ms)",
-//         led_name, expected_hz, measured_hz, toggles, window_ms);
-// }
-
 static void simulate_button_click(const struct gpio_dt_spec *button)
 {
     gpio_emul_input_set(button->port, button->pin, 1);
@@ -311,42 +132,18 @@ static void simulate_button_click(const struct gpio_dt_spec *button)
 /* Assert that an LED is OFF */
 static void assert_led_off(const struct gpio_dt_spec *led)
 {
-    // int val = gpio_pin_get_dt(led);
-    // zassert_equal(val, 0,
-    //               "Expected LED on pin %d to be OFF, but value is %d",
-    //               led->pin, val);
-
-    zassert_equal(led_is_on(led), false, "Expected LED on pin %d to be OFF, but it is ON", led->pin);
+    zassert_equal(gpio_pin_get_dt(led) > 0, false, "Expected LED on pin %d to be OFF, but it is ON", led->pin);
 }
 
 /* Assert that an LED is ON */
 static void assert_led_on(const struct gpio_dt_spec *led)
 {
-    // int val = gpio_pin_get_dt(led);
-    // zassert_not_equal(val, 0,
-    //                   "Expected LED on pin %d to be ON, but value is %d",
-    //                   led->pin, val);
-
-    zassert_equal(led_is_on(led), true, "Expected LED on pin %d to be ON, but it is OFF", led->pin);
+    zassert_equal(gpio_pin_get_dt(led) > 0, true, "Expected LED on pin %d to be ON, but it is OFF", led->pin);
 }
 
 /* ================================================================== */
 /*  TESTS                                                             */
 /* ================================================================== */
-
-/* check default frequencies frequency */
-// ZTEST(state_machine_tests, test_01_default_frequencies)
-// {
-//     start_main(500);
-
-//     // Suppose action LEDs should blink at 2 Hz
-//     assert_leds_blink_freq_fixed(&heartbeat_led,
-//                                  &iv_pump_led,
-//                                  &buzzer_led,
-//                                  &error_led,
-//                                  4000,
-//                                  2);
-// }
 
 ZTEST(state_machine_tests, test_01_default_frequencies)
 {
@@ -358,34 +155,40 @@ ZTEST(state_machine_tests, test_01_default_frequencies)
     assert_led_off(&error_led);
 }
 
-
-
-
-
-
-
-// /* freq up once + check */
-// ZTEST(state_machine_tests, test_02_freq_up_one_test)
-// {
-//     start_main(150);
+/* freq up once + check */
+ZTEST(state_machine_tests, test_02_freq_up_one_test)
+{
+    start_main(1000);
     
-//     simulate_button_click(&freq_up_button);
-//     uint32_t events = k_event_wait(&program_test_events,
-//                                    FREQ_UP_TEST_NOTICE,
-//                                    true,
-//                                    K_MSEC(200));
-//     (void) events;
+    simulate_button_click(&freq_up_button);
+    uint32_t events = k_event_wait(&program_test_events,
+                                   FREQ_UP_TEST_NOTICE,
+                                   true,
+                                   K_MSEC(200));
+    (void) events;
     
-//     assert_led_blink_freq(&heartbeat_led, 2000, 1, 1, "heartbeat");
-//     assert_led_blink_freq(&iv_pump_led, 2000, 3, 1, "iv_pump");
-//     assert_led_blink_freq(&buzzer_led, 2000, 3, 1, "buzzer");
-//     assert_led_off(&error_led);
-// }
+    assert_led_blink_freq(&heartbeat_led, 2000, 1, 1, "heartbeat");
+    assert_led_blink_freq(&iv_pump_led, 2000, 3, 1, "iv_pump");
+    assert_led_blink_freq(&buzzer_led, 2000, 3, 1, "buzzer");
+    assert_led_off(&error_led);
+}
+
+
+
+
+
+
+
+
+
+
+
+
 
 // /* freq down once + check */
 // ZTEST(state_machine_tests, test_xx_name)
 // {
-//     start_main(150);
+//     start_main(1000);
     
 //     simulate_button_click(&freq_down_button);
 //     uint32_t events = k_event_wait(&program_test_events,
@@ -403,7 +206,7 @@ ZTEST(state_machine_tests, test_01_default_frequencies)
 // /* freq up once + reset + check */
 // ZTEST(state_machine_tests, test_02_freq_up_one_test)
 // {
-//     start_main(150);
+//     start_main(1000);
     
 //     simulate_button_click(&freq_up_button);
 //     uint32_t events = k_event_wait(&program_test_events,
@@ -427,7 +230,7 @@ ZTEST(state_machine_tests, test_01_default_frequencies)
 // /* freq down once + reset + check */
 // ZTEST(state_machine_tests, test_02_freq_up_one_test)
 // {
-//     start_main(150);
+//     start_main(1000);
     
 //     simulate_button_click(&freq_down_button);
 //     uint32_t events = k_event_wait(&program_test_events,
@@ -451,7 +254,7 @@ ZTEST(state_machine_tests, test_01_default_frequencies)
 // /* sleep + check */
 // ZTEST(state_machine_tests, test_xx_name)
 // {
-//     start_main(150);
+//     start_main(1000);
     
 //     simulate_button_click(&sleep_button);
 //     uint32_t events = k_event_wait(&program_test_events,
@@ -469,7 +272,7 @@ ZTEST(state_machine_tests, test_01_default_frequencies)
 // /* sleep + sleep + check */
 // ZTEST(state_machine_tests, test_xx_name)
 // {
-//     start_main(150);
+//     start_main(1000);
     
 //     simulate_button_click(&sleep_button);
 //     uint32_t events = k_event_wait(&program_test_events,
@@ -494,7 +297,7 @@ ZTEST(state_machine_tests, test_01_default_frequencies)
 // /* freq up + sleep + sleep + check */
 // ZTEST(state_machine_tests, test_xx_name)
 // {
-//     start_main(150);
+//     start_main(1000);
     
 //     simulate_button_click(&freq_up_button);
 //     uint32_t events = k_event_wait(&program_test_events,
@@ -525,7 +328,7 @@ ZTEST(state_machine_tests, test_01_default_frequencies)
 // /* freq up + sleep + reset + check */
 // ZTEST(state_machine_tests, test_xx_name)
 // {
-//     start_main(150);
+//     start_main(1000);
     
 //     simulate_button_click(&freq_up_button);
 //     uint32_t events = k_event_wait(&program_test_events,
@@ -555,7 +358,7 @@ ZTEST(state_machine_tests, test_01_default_frequencies)
 // /* freq down + freq down + check */
 // ZTEST(state_machine_tests, test_02_freq_up_one_test)
 // {
-//     start_main(150);
+//     start_main(1000);
     
 //     simulate_button_click(&freq_down_button);
 //     uint32_t events = k_event_wait(&program_test_events,
@@ -586,7 +389,7 @@ ZTEST(state_machine_tests, test_01_default_frequencies)
 // /* description */
 // ZTEST(state_machine_tests, test_xx_name)
 // {
-//     start_main(150);
+//     start_main(1000);
 // }
 
 /**
