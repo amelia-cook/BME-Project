@@ -125,33 +125,17 @@ static void simulate_button_click(const struct gpio_dt_spec *button)
 }
 
 /* Assert that an LED is OFF */
-// static void assert_led_off(const struct gpio_dt_spec *led, const char *led_name)
-// {
-//     zassert_equal(gpio_pin_get_dt(led) > 0, false, "Expected LED %s on pin %d to be OFF, but it is ON", led_name, led->pin);
-// }
-
-// /* Assert that an LED is ON */
-// static void assert_led_on(const struct gpio_dt_spec *led, const char *led_name)
-// {
-//     zassert_equal(gpio_pin_get_dt(led), 1,
-//         "Expected LED %s on pin %d to be ON, but it is OFF",
-//         led_name, led->pin);
-// }
-
 static void assert_led_off(const struct gpio_dt_spec *led, const char *led_name)
 {
-    int val;
-    gpio_emul_output_get(led->port, led->pin, &val);
-    zassert_equal(val, 0,
-        "Expected LED %s on pin %d to be OFF, but it is ON", led_name, led->pin);
+    zassert_equal(gpio_pin_get_dt(led) > 0, false, "Expected LED %s on pin %d to be OFF, but it is ON", led_name, led->pin);
 }
 
+/* Assert that an LED is ON */
 static void assert_led_on(const struct gpio_dt_spec *led, const char *led_name)
 {
-    int val;
-    gpio_emul_output_get(led->port, led->pin, &val);
-    zassert_equal(val, 1,
-        "Expected LED %s on pin %d to be ON, but it is OFF", led_name, led->pin);
+    zassert_equal(gpio_pin_get_dt(led), 1,
+        "Expected LED %s on pin %d to be ON, but it is OFF",
+        led_name, led->pin);
 }
 
 /* ================================================================== */
