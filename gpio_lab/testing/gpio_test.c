@@ -276,113 +276,106 @@ ZTEST(state_machine_tests, test_sleep_sleep)
     assert_led_off(&error_led);
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// /* freq up + sleep + sleep + check */
-// ZTEST(state_machine_tests, test_xx_name)
-// {
-//     start_main(1000);
+/* freq up + sleep + sleep + check */
+ZTEST(state_machine_tests, test_freq_up_sleep_sleep)
+{
+    start_main(1000);
     
-//     simulate_button_click(&freq_up_button);
-//     uint32_t events = k_event_wait(&program_test_events,
-//                                    FREQ_UP_TEST_NOTICE,
-//                                    true,
-//                                    K_MSEC(200));
+    simulate_button_click(&freq_up_button);
+    uint32_t events = k_event_wait(&program_test_events,
+                                   FREQ_UP_TEST_NOTICE,
+                                   true,
+                                   K_MSEC(200));
     
-//     simulate_button_click(&sleep_button);
-//     events = k_event_wait(&program_test_events,
-//                           SLEEP_TEST_NOTICE,
-//                           true,
-//                           K_MSEC(200));
-   
-//     // TODO: clear sleep btn test notice event????????
-//     simulate_button_click(&sleep_button);
-//     events = k_event_wait(&program_test_events,
-//                           SLEEP_BTN_TEST_NOTICE,
-//                           true,
-//                           K_MSEC(200));
-//     (void) events;
+    simulate_button_click(&sleep_button);
+    events = k_event_wait(&program_test_events,
+                          SLEEP_TEST_NOTICE,
+                          true,
+                          K_MSEC(200));
     
-//     assert_led_blink_freq(&heartbeat_led, 2000, 1, 1, "heartbeat");
-//     assert_led_blink_freq(&iv_pump_led, 2000, 3, 1, "iv_pump");
-//     assert_led_blink_freq(&buzzer_led, 2000, 3, 1, "buzzer");
-//     assert_led_off(&error_led);
-// }
+    simulate_button_click(&sleep_button);
+    events = k_event_wait(&program_test_events,
+                          SLEEP_BTN_TEST_NOTICE,
+                          true,
+                          K_MSEC(200));
+    (void) events;
+    
+    assert_led_blink_freq(&heartbeat_led, 2000, 1, 1, "heartbeat");
+    assert_led_blink_freq(&iv_pump_led, 2000, 3, 1, "iv_pump");
+    assert_led_blink_freq(&buzzer_led, 2000, 3, 1, "buzzer");
+    assert_led_off(&error_led);
+}
 
-// /* freq up + sleep + reset + check */
-// ZTEST(state_machine_tests, test_xx_name)
-// {
-//     start_main(1000);
+/* freq up + sleep + reset + check */
+ZTEST(state_machine_tests, test_freq_up_sleep_reset)
+{
+    start_main(1000);
     
-//     simulate_button_click(&freq_up_button);
-//     uint32_t events = k_event_wait(&program_test_events,
-//                                    FREQ_UP_TEST_NOTICE,
-//                                    true,
-//                                    K_MSEC(200));
+    simulate_button_click(&freq_up_button);
+    uint32_t events = k_event_wait(&program_test_events,
+                                   FREQ_UP_TEST_NOTICE,
+                                   true,
+                                   K_MSEC(200));
     
-//     simulate_button_click(&sleep_button);
-//     events = k_event_wait(&program_test_events,
-//                           SLEEP_TEST_NOTICE,
-//                           true,
-//                           K_MSEC(200));
+    simulate_button_click(&sleep_button);
+    events = k_event_wait(&program_test_events,
+                          SLEEP_TEST_NOTICE,
+                          true,
+                          K_MSEC(200));
     
-//     simulate_button_click(&reset_button);
-//     events = k_event_wait(&program_test_events,
-//                           RESET_TEST_NOTICE,
-//                           true,
-//                           K_MSEC(200));
-//     (void) events;
+    simulate_button_click(&reset_button);
+    events = k_event_wait(&program_test_events,
+                          RESET_TEST_NOTICE,
+                          true,
+                          K_MSEC(200));
+    (void) events;
     
-//     assert_led_blink_freq(&heartbeat_led, 2000, 1, 1, "heartbeat");
-//     assert_led_blink_freq(&iv_pump_led, 2000, 2, 1, "iv_pump");
-//     assert_led_blink_freq(&buzzer_led, 2000, 2, 1, "buzzer");
-//     assert_led_off(&error_led);
-// }
+    assert_led_blink_freq(&heartbeat_led, 2000, 1, 1, "heartbeat");
+    assert_led_blink_freq(&iv_pump_led, 2000, 2, 1, "iv_pump");
+    assert_led_blink_freq(&buzzer_led, 2000, 2, 1, "buzzer");
+    assert_led_off(&error_led);
+}
 
-// /* freq down + freq down + check */
-// ZTEST(state_machine_tests, test_02_freq_up_one_test)
-// {
-//     start_main(1000);
+/* freq down + freq down + check */
+ZTEST(state_machine_tests, test_freq_down_twice)
+{
+    start_main(1000);
     
-//     simulate_button_click(&freq_down_button);
-//     uint32_t events = k_event_wait(&program_test_events,
-//                                    FREQ_DOWN_TEST_NOTICE,
-//                                    true,
-//                                    K_MSEC(200));
+    simulate_button_click(&freq_down_button);
+    uint32_t events = k_event_wait(&program_test_events,
+                                   FREQ_DOWN_TEST_NOTICE,
+                                   true,
+                                   K_MSEC(200));
     
-//     simulate_button_click(&freq_down_button);
-//     // events = k_event_wait(&program_test_events,
-//     //                       FREQ_DOWN_TEST_NOTICE,
-//     //                       true,
-//     //                       K_MSEC(200));
+    simulate_button_click(&freq_down_button);
     
-//     events = k_event_wait(&program_test_events,
-//                           ERROR_TEST_NOTICE,
-//                           true,
-//                           K_MSEC(200));
-//     (void) events;
+    events = k_event_wait(&program_test_events,
+                          ERROR_TEST_NOTICE,
+                          true,
+                          K_MSEC(200));
+    (void) events;
     
-//     assert_led_blink_freq(&heartbeat_led, 2000, 1, 1, "heartbeat");
-//     assert_led_off(&iv_pump_led);
-//     assert_led_off(&buzzer_led);
-//     assert_led_on(&error_led);
-// }
+    assert_led_blink_freq(&heartbeat_led, 2000, 1, 1, "heartbeat");
+    assert_led_off(&iv_pump_led);
+    assert_led_off(&buzzer_led);
+    assert_led_on(&error_led);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
