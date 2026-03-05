@@ -225,7 +225,7 @@ static void assert_led_blink_freq(const struct gpio_dt_spec *led,
 
     while (gpio_pin_get_dt(led) == initial) {
         if (k_uptime_get() - sync_start > 2000) {
-            zassert_fail("LED %s: never toggled (sync timeout)", led_name);
+            zassert_true(false, "LED %s: never toggled (sync timeout)", led_name);
         }
         k_sleep(K_MSEC(1));
     }
