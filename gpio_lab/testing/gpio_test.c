@@ -27,6 +27,7 @@ static void before(void *)
 static void after(void *)
 {
     stop_main();
+    k_msleep(50);
 }
 
 /* ------------------------------------------------------------------ */
@@ -49,6 +50,7 @@ static void student_main_entry(void *, void *, void *)
 static void stop_main(void)
 {
     if (main_running) {
+        simulate_button_click(&reset_button);
         k_thread_abort(student_main_tid);
         k_msleep(20);
         main_running = false;
