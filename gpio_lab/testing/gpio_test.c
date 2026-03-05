@@ -125,33 +125,33 @@ static void simulate_button_click(const struct gpio_dt_spec *button)
 }
 
 /* Assert that an LED is OFF */
-static void assert_led_off(const struct gpio_dt_spec *led)
+static void assert_led_off(const struct gpio_dt_spec *led, const char *led_name)
 {
-    zassert_equal(gpio_pin_get_dt(led) > 0, false, "Expected LED on pin %d to be OFF, but it is ON", led->pin);
+    zassert_equal(gpio_pin_get_dt(led) > 0, false, "Expected LED %s on pin %d to be OFF, but it is ON", led_name, led->pin);
 }
 
 /* Assert that an LED is ON */
-static void assert_led_on(const struct gpio_dt_spec *led)
+static void assert_led_on(const struct gpio_dt_spec *led, const char *led_name)
 {
-    zassert_equal(gpio_pin_get_dt(led) > 0, true, "Expected LED on pin %d to be ON, but it is OFF", led->pin);
+    zassert_equal(gpio_pin_get_dt(led) > 0, true, "Expected LED %s on pin %d to be ON, but it is OFF", led_name, led->pin);
 }
 
 /* ================================================================== */
 /*  TESTS                                                             */
 /* ================================================================== */
 
-ZTEST(state_machine_tests, test_default_frequencies)
+ZTEST(state_machine_tests, test_01_default_frequencies)
 {
     start_main(1000);
     
     assert_led_blink_freq(&heartbeat_led, 4000, 1, 1, "heartbeat");
     assert_led_blink_freq(&iv_pump_led, 4000, 2, 1, "iv_pump");
     assert_led_blink_freq(&buzzer_led, 4000, 2, 1, "buzzer");
-    assert_led_off(&error_led);
+    assert_led_off(&error_led, "error");
 }
 
 /* freq up once + check */
-ZTEST(state_machine_tests, test_freq_up_one)
+ZTEST(state_machine_tests, test_02_freq_up_one)
 {
     start_main(1000);
     
@@ -165,11 +165,11 @@ ZTEST(state_machine_tests, test_freq_up_one)
     assert_led_blink_freq(&heartbeat_led, 2000, 1, 1, "heartbeat");
     assert_led_blink_freq(&iv_pump_led, 2000, 3, 1, "iv_pump");
     assert_led_blink_freq(&buzzer_led, 2000, 3, 1, "buzzer");
-    assert_led_off(&error_led);
+    assert_led_off(&error_led, "error");
 }
 
 /* freq down once + check */
-ZTEST(state_machine_tests, test_freq_down_once)
+ZTEST(state_machine_tests, test_03_freq_down_once)
 {
     start_main(1000);
     
@@ -183,11 +183,11 @@ ZTEST(state_machine_tests, test_freq_down_once)
     assert_led_blink_freq(&heartbeat_led, 2000, 1, 1, "heartbeat");
     assert_led_blink_freq(&iv_pump_led, 2000, 1, 1, "iv_pump");
     assert_led_blink_freq(&buzzer_led, 2000, 1, 1, "buzzer");
-    assert_led_off(&error_led);
+    assert_led_off(&error_led, "error");
 }
 
 /* freq up once + reset + check */
-ZTEST(state_machine_tests, test_freq_up_reset)
+ZTEST(state_machine_tests, test_04_freq_up_reset)
 {
     start_main(1000);
     
@@ -207,11 +207,11 @@ ZTEST(state_machine_tests, test_freq_up_reset)
     assert_led_blink_freq(&heartbeat_led, 2000, 1, 1, "heartbeat");
     assert_led_blink_freq(&iv_pump_led, 2000, 2, 1, "iv_pump");
     assert_led_blink_freq(&buzzer_led, 2000, 2, 1, "buzzer");
-    assert_led_off(&error_led);
+    assert_led_off(&error_led, "error");
 }
 
 /* freq down once + reset + check */
-ZTEST(state_machine_tests, test_freq_down_reset)
+ZTEST(state_machine_tests, test_05_freq_down_reset)
 {
     start_main(1000);
     
@@ -231,11 +231,11 @@ ZTEST(state_machine_tests, test_freq_down_reset)
     assert_led_blink_freq(&heartbeat_led, 2000, 1, 1, "heartbeat");
     assert_led_blink_freq(&iv_pump_led, 2000, 2, 1, "iv_pump");
     assert_led_blink_freq(&buzzer_led, 2000, 2, 1, "buzzer");
-    assert_led_off(&error_led);
+    assert_led_off(&error_led, "error");
 }
 
 /* sleep + check */
-ZTEST(state_machine_tests, test_sleep)
+ZTEST(state_machine_tests, test_06_sleep)
 {
     start_main(1000);
     
@@ -247,13 +247,13 @@ ZTEST(state_machine_tests, test_sleep)
     (void) events;
     
     assert_led_blink_freq(&heartbeat_led, 2000, 1, 1, "heartbeat");
-    assert_led_off(&iv_pump_led);
-    assert_led_off(&buzzer_led);
-    assert_led_off(&error_led);
+    assert_led_off(&iv_pump_led, "iv_pump");
+    assert_led_off(&buzzer_led, "buzzer");
+    assert_led_off(&error_led, "error");
 }
 
 /* sleep + sleep + check */
-ZTEST(state_machine_tests, test_sleep_sleep)
+ZTEST(state_machine_tests, test_07_sleep_sleep)
 {
     start_main(1000);
     
@@ -273,11 +273,11 @@ ZTEST(state_machine_tests, test_sleep_sleep)
     assert_led_blink_freq(&heartbeat_led, 2000, 1, 1, "heartbeat");
     assert_led_blink_freq(&iv_pump_led, 2000, 2, 1, "iv_pump");
     assert_led_blink_freq(&buzzer_led, 2000, 2, 1, "buzzer");
-    assert_led_off(&error_led);
+    assert_led_off(&error_led, "error");
 }
 
 /* freq up + sleep + sleep + check */
-ZTEST(state_machine_tests, test_freq_up_sleep_sleep)
+ZTEST(state_machine_tests, test_08_freq_up_sleep_sleep)
 {
     start_main(1000);
     
@@ -303,11 +303,11 @@ ZTEST(state_machine_tests, test_freq_up_sleep_sleep)
     assert_led_blink_freq(&heartbeat_led, 2000, 1, 1, "heartbeat");
     assert_led_blink_freq(&iv_pump_led, 2000, 3, 1, "iv_pump");
     assert_led_blink_freq(&buzzer_led, 2000, 3, 1, "buzzer");
-    assert_led_off(&error_led);
+    assert_led_off(&error_led, "error");
 }
 
 /* freq up + sleep + reset + check */
-ZTEST(state_machine_tests, test_freq_up_sleep_reset)
+ZTEST(state_machine_tests, test_09_freq_up_sleep_reset)
 {
     start_main(1000);
     
@@ -333,11 +333,11 @@ ZTEST(state_machine_tests, test_freq_up_sleep_reset)
     assert_led_blink_freq(&heartbeat_led, 2000, 1, 1, "heartbeat");
     assert_led_blink_freq(&iv_pump_led, 2000, 2, 1, "iv_pump");
     assert_led_blink_freq(&buzzer_led, 2000, 2, 1, "buzzer");
-    assert_led_off(&error_led);
+    assert_led_off(&error_led, "error");
 }
 
 /* freq down + freq down + check */
-ZTEST(state_machine_tests, test_freq_down_twice)
+ZTEST(state_machine_tests, test_10_freq_down_twice)
 {
     start_main(1000);
     
@@ -355,10 +355,12 @@ ZTEST(state_machine_tests, test_freq_down_twice)
                           K_MSEC(200));
     (void) events;
     
+    k_msleep(50);
+    
     assert_led_blink_freq(&heartbeat_led, 2000, 1, 1, "heartbeat");
-    assert_led_off(&iv_pump_led);
-    assert_led_off(&buzzer_led);
-    assert_led_on(&error_led);
+    assert_led_off(&iv_pump_led, "iv_pump");
+    assert_led_off(&buzzer_led, "buzzer");
+    assert_led_on(&error_led, "error");
 }
 
 

@@ -43,7 +43,7 @@ extern struct k_event program_test_events;
     k_event_post(&program_test_events, SLEEP_BTN_TEST_NOTICE);      \
 }
 
-#define ERROR_STATE()                                              \
+#define ERROR_STATE()                                               \
 {                                                                   \
     k_event_post(&program_test_events, ERROR_TEST_NOTICE);          \
 }
@@ -53,7 +53,7 @@ extern struct k_event program_test_events;
     k_event_post(&program_test_events, RESET_TEST_NOTICE);          \
 }
 
-#define SLEEP_STATE()                                              \
+#define SLEEP_STATE()                                               \
 {                                                                   \
     k_event_post(&program_test_events, SLEEP_TEST_NOTICE);          \
 }
