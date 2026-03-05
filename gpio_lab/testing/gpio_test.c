@@ -212,49 +212,90 @@ static bool led_is_on(const struct gpio_dt_spec *led)
 //         measured_hz[1], measured_hz[2]);
 // }
 
+static volatile int g_led_toggles = 0;
+
+static void led_edge_callback(const struct device *dev,
+                              struct gpio_callback *cb,
+                              uint32_t pins)
+{
+    g_led_toggles++;
+}
+
 static void assert_led_blink_freq(const struct gpio_dt_spec *led,
                                   int window_ms,
                                   int expected_hz,
                                   int tolerance_hz,
                                   const char *led_name)
 {
-    /* --- Wait for first edge so we don't measure a static phase --- */
-    int64_t sync_start = k_uptime_get();
-    int initial = gpio_pin_get_dt(led);
-    zassert_true(initial >= 0, "LED %s: gpio read failed", led_name);
+    g_led_toggles = 0;  // reset counter
 
-    while (gpio_pin_get_dt(led) == initial) {
-        if (k_uptime_get() - sync_start > 2000) {
-            zassert_true(false, "LED %s: never toggled (sync timeout)", led_name);
-        }
-        k_sleep(K_MSEC(1));
-    }
+    struct gpio_callback cb;
+    gpio_init_callback(&cb, led_edge_callback, BIT(led->pin));
+    // zassert_true(ret == 0, "LED %s: failed to init callback", led_name);
 
-    /* --- Now measure over fixed window --- */
-    int toggles = 0;
-    int64_t end = k_uptime_get() + window_ms;
+    int ret = gpio_add_callback_dt(led, &cb);
+    zassert_true(ret == 0, "LED %s: failed to add callback", led_name);
 
-    int last = gpio_pin_get_dt(led);
-    zassert_true(last >= 0, "LED %s: gpio read failed", led_name);
+    ret = gpio_pin_interrupt_configure_dt(led, GPIO_INT_EDGE_BOTH);
+    zassert_true(ret == 0, "LED %s: failed to configure interrupt", led_name);
 
-    while (k_uptime_get() < end) {
-        int now = gpio_pin_get_dt(led);
+    k_msleep(window_ms);  // wait measurement window
 
-        if (now >= 0 && now != last) {
-            toggles++;
-            last = now;
-        }
+    ret = gpio_pin_interrupt_configure_dt(led, GPIO_INT_DISABLE);
+    zassert_true(ret == 0, "LED %s: failed to disable interrupt", led_name);
 
-        k_sleep(K_MSEC(1));
-    }
+    gpio_remove_callback_dt(led, &cb);
 
-    /* Each toggle = half cycle */
-    int measured_hz = (toggles * 500) / window_ms;
+    int measured_hz = (g_led_toggles * 500) / window_ms;
 
     zassert_within(measured_hz, expected_hz, tolerance_hz,
         "LED %s: expected ~%d Hz but measured ~%d Hz (%d toggles in %d ms)",
-        led_name, expected_hz, measured_hz, toggles, window_ms);
+        led_name, expected_hz, measured_hz, g_led_toggles, window_ms);
 }
+
+// static void assert_led_blink_freq(const struct gpio_dt_spec *led,
+//                                   int window_ms,
+//                                   int expected_hz,
+//                                   int tolerance_hz,
+//                                   const char *led_name)
+// {
+//     /* --- Wait for first edge so we don't measure a static phase --- */
+//     int64_t sync_start = k_uptime_get();
+//     int initial = gpio_pin_get_dt(led);
+//     zassert_true(initial >= 0, "LED %s: gpio read failed", led_name);
+
+//     while (gpio_pin_get_dt(led) == initial) {
+//         if (k_uptime_get() - sync_start > 2000) {
+//             zassert_true(false, "LED %s: never toggled (sync timeout)", led_name);
+//         }
+//         k_sleep(K_MSEC(1));
+//     }
+
+//     /* --- Now measure over fixed window --- */
+//     int toggles = 0;
+//     int64_t end = k_uptime_get() + window_ms;
+
+//     int last = gpio_pin_get_dt(led);
+//     zassert_true(last >= 0, "LED %s: gpio read failed", led_name);
+
+//     while (k_uptime_get() < end) {
+//         int now = gpio_pin_get_dt(led);
+
+//         if (now >= 0 && now != last) {
+//             toggles++;
+//             last = now;
+//         }
+
+//         k_sleep(K_MSEC(1));
+//     }
+
+//     /* Each toggle = half cycle */
+//     int measured_hz = (toggles * 500) / window_ms;
+
+//     zassert_within(measured_hz, expected_hz, tolerance_hz,
+//         "LED %s: expected ~%d Hz but measured ~%d Hz (%d toggles in %d ms)",
+//         led_name, expected_hz, measured_hz, toggles, window_ms);
+// }
 
 static void simulate_button_click(const struct gpio_dt_spec *button)
 {
