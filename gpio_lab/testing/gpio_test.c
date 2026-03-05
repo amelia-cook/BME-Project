@@ -216,32 +216,43 @@ static void assert_led_blink_freq(const struct gpio_dt_spec *led,
                                   int window_ms,
                                   int expected_hz,
                                   int tolerance_hz,
-                                  const char* led_name)
+                                  const char *led_name)
 {
-    /* Step 1 – count edges over the full window */
-    // bool last = led_is_on(led);
+    /* --- Wait for first edge so we don't measure a static phase --- */
+    int64_t sync_start = k_uptime_get();
+    int initial = gpio_pin_get_dt(led);
+    zassert_true(initial >= 0, "LED %s: gpio read failed", led_name);
+
+    while (gpio_pin_get_dt(led) == initial) {
+        if (k_uptime_get() - sync_start > 2000) {
+            zassert_fail("LED %s: never toggled (sync timeout)", led_name);
+        }
+        k_sleep(K_MSEC(1));
+    }
+
+    /* --- Now measure over fixed window --- */
     int toggles = 0;
     int64_t end = k_uptime_get() + window_ms;
-    bool last = gpio_pin_get_dt(led) > 0;
+
+    int last = gpio_pin_get_dt(led);
+    zassert_true(last >= 0, "LED %s: gpio read failed", led_name);
 
     while (k_uptime_get() < end) {
-        // bool now = led_is_on(led);
-        bool now = gpio_pin_get_dt(led) > 0;
-        if (now != last) {
+        int now = gpio_pin_get_dt(led);
+
+        if (now >= 0 && now != last) {
             toggles++;
             last = now;
         }
+
         k_sleep(K_MSEC(1));
-        k_yield();
     }
 
-    /* Step 2 – compute frequency in Hz */
-    // Each toggle represents half a cycle
+    /* Each toggle = half cycle */
     int measured_hz = (toggles * 500) / window_ms;
 
-    /* Step 3 – assert within tolerance */
     zassert_within(measured_hz, expected_hz, tolerance_hz,
-        "LED %s: epected ~%d Hz but measured ~%d Hz (%d toggles in %d ms)",
+        "LED %s: expected ~%d Hz but measured ~%d Hz (%d toggles in %d ms)",
         led_name, expected_hz, measured_hz, toggles, window_ms);
 }
 
