@@ -352,6 +352,12 @@ ZTEST(state_machine_tests, test_10_freq_down_twice)
     simulate_button_click(&freq_down_button);
     
     events = k_event_wait(&program_test_events,
+                          FREQ_DOWN_TEST_NOTICE,
+                          true,
+                          K_MSEC(200));
+    (void) events;
+
+    events = k_event_wait(&program_test_events,
                           ERROR_TEST_NOTICE,
                           true,
                           K_MSEC(200));
@@ -365,6 +371,32 @@ ZTEST(state_machine_tests, test_10_freq_down_twice)
     assert_led_on(&error_led, "error");
 }
 
+
+// ZTEST(state_machine_tests, test_10_freq_down_twice)
+// {
+//     start_main(1000);
+    
+//     simulate_button_click(&freq_down_button);
+//     uint32_t events = k_event_wait(&program_test_events,
+//                                    FREQ_DOWN_TEST_NOTICE,
+//                                    true,
+//                                    K_MSEC(200));
+    
+//     simulate_button_click(&freq_down_button);
+    
+//     events = k_event_wait(&program_test_events,
+//                           ERROR_TEST_NOTICE,
+//                           true,
+//                           K_MSEC(200));
+//     (void) events;
+    
+//     k_msleep(50);
+    
+//     assert_led_blink_freq(&heartbeat_led, 2000, 1, 1, "heartbeat");
+//     assert_led_off(&iv_pump_led, "iv_pump");
+//     assert_led_off(&buzzer_led, "buzzer");
+//     assert_led_on(&error_led, "error");
+// }
 
 
 
