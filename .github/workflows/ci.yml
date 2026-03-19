@@ -17,7 +17,7 @@ jobs:
       - name: West init
         run: |
           cd gpio_lab
-          west init
+          west init -m https://github.com/zephyrproject-rtos/zephyr --mr v3.7.0
           west update -o=--depth=1 -n
       
       - name: Check code specs
