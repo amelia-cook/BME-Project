@@ -21,10 +21,10 @@ april 23 - 30 = want to be done by 23rd but this week will be a buffer since its
 
 
 Lab order:
-    - gpio --> DONE!!!!!!
-    - timers and atomic operations (we don’t have this)
-    - threads and kernel events
-    - state machine framework
-    - adc
-    - pwm
-    - ecg ble temp
+    - gpio (one tag)--> DONE!!!!!!
+    - timers and atomic operations (one tag) (we don’t have this)
+    - threads and kernel events (three tags)
+    - state machine framework (one tag)
+    - adc (three tags)
+    - pwm (two tags)
+    - ecg ble temp (one tag / v4.0.+)
