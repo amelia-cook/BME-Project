@@ -12,6 +12,11 @@ jobs:
       kernel: ${{ steps.filter.outputs.kernel }}
       smf: ${{ steps.filter.outputs.smf }}
       adc: ${{ steps.filter.outputs.adc }}
+      any: ${{ steps.filter.outputs.gpio == 'true' ||
+               steps.filter.outputs.kernel == 'true' ||
+               steps.filter.outputs.smf == 'true' ||
+               steps.filter.outputs.adc == 'true'
+            }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -31,6 +36,8 @@ jobs:
               - 'lab_adc/**'
   
   zephyr_setup:
+    needs: changes
+    if: needs.changes.outputs.any == 'true'
     runs-on: ubuntu-latest
     container:
       image: hardwario/nrf-connect-sdk-build:v2.9.0-1
