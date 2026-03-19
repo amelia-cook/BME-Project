@@ -5,6 +5,10 @@ TODOs:
 4. start work on next lab, either timers & atomic or threads & kernel events 
 
 
+changes I made:
+- changed “gpio_lab” to “lab_gpio” so that the labs would be together in the repo and easier to find
+- added lab_kernel code and basic pipeline setup
+- added lab_smf code and basic pipeline setup
 
 
 
