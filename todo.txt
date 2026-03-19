@@ -9,7 +9,7 @@ changes I made:
 - changed “gpio_lab” to “lab_gpio” so that the labs would be together in the repo and easier to find
 - added lab_kernel code and basic pipeline setup
 - added lab_smf code and basic pipeline setup
-
+- added lab_adc code and basic pipeline setup
 
 
 

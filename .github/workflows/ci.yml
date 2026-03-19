@@ -65,11 +65,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
       
-      - name: West init
+      - name: Download workspace
+        uses: actions/download-artifact@v4
+        with:
+          name: zephyr-workspace
+      
+      - name: Extract workspace
         run: |
-          cd lab_gpio
-          west init -m https://github.com/zephyrproject-rtos/zephyr --mr v3.7.0
-          west update -o=--depth=1 -n
+          tar -xzf zephyr_workspace.tar.gz
       
       - name: Check code specs
         run: |
@@ -141,11 +144,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
       
-      - name: West init
+      - name: Download workspace
+        uses: actions/download-artifact@v4
+        with:
+          name: zephyr-workspace
+      
+      - name: Extract workspace
         run: |
-          cd lab_kernel
-          west init -m https://github.com/zephyrproject-rtos/zephyr --mr v3.7.0
-          west update -o=--depth=1 -n
+          tar -xzf zephyr_workspace.tar.gz
       
       # - name: Check code specs
       #   run: |
