@@ -1,9 +1,30 @@
 TODOs:
-- macros
-    - make all do-while? for if-statement compilation issue?
-    - change names to reflect lib?
-        - avoid interference with potential student macro names
-- fix pipeline (again)
-    - prj conf files?
-- tests
-    - how long should the timeouts be for the event waits?
+1. figure out if we need to check printed output for gpio lab 
+2. figure out of if we want test to be for tags or whole labs
+3. figure out if he will defining all states or some states 
+        -- then for state machine framework we can grab variable 
+4. figure out if we are doing timers and atomic operations lab testing 
+    --> do lab 
+
+5. upload all code 
+6. create all branches 
+7. start work on next lab, either timers & atomic or threads & kernel events 
+
+
+Plan:
+march 19 - 26 = timers and atomic operations 
+march 26 - april 2 = threads and kernel events && state machine framework
+april 2 - 9 = split adc & pwm (amelia work on one, sophie work on one)
+april 9 - 16 = ecg ble temp
+april 16 - 23 = ecg ble temp
+april 23 - 30 = want to be done by 23rd but this week will be a buffer since its final exam period 
+
+
+Lab order:
+    - gpio --> DONE!!!!!!
+    - timers and atomic operations (we don’t have this)
+    - threads and kernel events
+    - state machine framework
+    - adc
+    - pwm
+    - ecg ble temp
