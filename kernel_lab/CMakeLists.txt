@@ -24,11 +24,11 @@ endif()
 # --------------------------------------------------
 
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})  # defines 'app' target
-project(gpio_tests)
+project(kernel_tests)
 
 target_sources(app PRIVATE src/main.c)
 target_sources(app PRIVATE testing/bme554_lib.c)
-target_sources(app PRIVATE testing/gpio_test.c)
+target_sources(app PRIVATE testing/kernel_test.c)
 
 target_include_directories(app PRIVATE testing)
 

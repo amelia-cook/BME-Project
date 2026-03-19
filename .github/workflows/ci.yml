@@ -9,6 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       gpio: ${{ steps.filter.outputs.gpio }}
+      kernel: ${{ steps.filter.outputs.kernel }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -20,7 +21,8 @@ jobs:
           filters: |
             gpio:
               - 'gpio_lab/**'
-  
+            kernel:
+              - 'kernel_lab/**'
   
   gpio_tests:
     needs: changes
@@ -86,6 +88,64 @@ jobs:
       - name: Check test results
         run: |
           cd gpio_lab
+          cat test_output.log
+          if grep -q "PROJECT EXECUTION SUCCESSFUL" test_output.log; then
+            echo "All tests passed!"
+            exit 0
+          elif grep -q "PROJECT EXECUTION FAILED" test_output.log; then
+            echo "Tests failed!"
+            exit 1
+          else
+            echo "Could not determine test status"
+            exit 1
+          fi
+  
+  kernel_tests:
+    needs: changes
+    if: needs.changes.outputs.kernel == 'true'
+    runs-on: ubuntu-latest
+    container:
+      image: hardwario/nrf-connect-sdk-build:v2.9.0-1
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: West init
+        run: |
+          cd kernel_lab
+          west init -m https://github.com/zephyrproject-rtos/zephyr --mr v3.7.0
+          west update -o=--depth=1 -n
+      
+      - name: Check code specs
+        run: |
+          set -e
+          cd kernel_lab
+          echo TODO
+      
+      - name: Build for native_sim
+        run: |
+          cd kernel_lab
+          west build -b native_sim -- \
+            -DEXTRA_CONF_FILE=sim.prj.conf
+      
+      - name: Build tests for native_sim
+        run: |
+          cd kernel_lab
+          west build -b native_sim --build-dir=build_test -- \
+            -DDTC_OVERLAY_FILE=boards/native_sim.overlay \
+            -DEXTRA_CONF_FILE=test.prj.conf \
+            -DTEST_BUILD=ON
+      
+      - name: Run unit tests
+        run: |
+          cd kernel_lab
+          chmod +x build_test/zephyr/zephyr.exe
+          build_test/zephyr/zephyr.exe | tee test_output.log
+          
+      - name: Check test results
+        run: |
+          cd kernel_lab
           cat test_output.log
           if grep -q "PROJECT EXECUTION SUCCESSFUL" test_output.log; then
             echo "All tests passed!"

@@ -1,13 +1,13 @@
 / {
     aliases {
-        @LED1@ = &sim_ledtest1;
-        @LED2@ = &sim_ledtest2;
-        @LED3@ = &sim_ledtest3;
-        @LED4@ = &sim_ledtest4;
-        @BUTTON1@ = &sim_buttontest1;
-        @BUTTON2@ = &sim_buttontest2;
-        @BUTTON3@ = &sim_buttontest3;
-        @BUTTON4@ = &sim_buttontest4;
+        heartbeat = &sim_ledtest1;
+        ivpump = &sim_ledtest2;
+        buzzer = &sim_ledtest3;
+        error = &sim_ledtest4;
+        sleepbutton = &sim_buttontest1;
+        frequpbutton = &sim_buttontest2;
+        freqdownbutton = &sim_buttontest3;
+        resetbutton = &sim_buttontest4;
     };
 
     sim_leds {
