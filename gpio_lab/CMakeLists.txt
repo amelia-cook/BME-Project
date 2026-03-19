@@ -13,28 +13,28 @@ if(DEFINED BOARD AND BOARD STREQUAL "native_sim")
   set(INPUT_OVERLAY ${CMAKE_CURRENT_SOURCE_DIR}/boards/native_posix.overlay)
   set(LED_DATA ${CMAKE_BINARY_DIR}/led_aliases.cmake)
   
-  execute_process(
-    COMMAND
-      ${Python3_EXECUTABLE}
-      ${CMAKE_CURRENT_SOURCE_DIR}/../scripts/extract_led_aliases.py
-      ${INPUT_OVERLAY}
-      ${LED_DATA}
-    WORKING_DIRECTORY
-      ${CMAKE_CURRENT_SOURCE_DIR}
-    RESULT_VARIABLE OVERLAY_RESULT
-  )
+  # execute_process(
+  #   COMMAND
+  #     ${Python3_EXECUTABLE}
+  #     ${CMAKE_CURRENT_SOURCE_DIR}/../scripts/extract_led_aliases.py
+  #     ${INPUT_OVERLAY}
+  #     ${LED_DATA}
+  #   WORKING_DIRECTORY
+  #     ${CMAKE_CURRENT_SOURCE_DIR}
+  #   RESULT_VARIABLE OVERLAY_RESULT
+  # )
   
-  if(NOT OVERLAY_RESULT EQUAL 0)
-    message(FATAL_ERROR "Failed to generate native_sim overlay")
-  endif()
+  # if(NOT OVERLAY_RESULT EQUAL 0)
+  #   message(FATAL_ERROR "Failed to generate native_sim overlay")
+  # endif()
   
-  include(${LED_DATA})
+  # include(${LED_DATA})
   
-  configure_file(
-    ${CMAKE_CURRENT_SOURCE_DIR}/boards/native_sim.overlay.in
-    ${CMAKE_CURRENT_SOURCE_DIR}/boards/native_sim.overlay
-    @ONLY
-  )
+  # configure_file(
+  #   ${CMAKE_CURRENT_SOURCE_DIR}/boards/native_sim.overlay.in
+  #   ${CMAKE_CURRENT_SOURCE_DIR}/boards/native_sim.overlay
+  #   @ONLY
+  # )
   
   set(EXTRA_DTC_OVERLAY_FILE
       ${CMAKE_CURRENT_SOURCE_DIR}/boards/native_sim.overlay
