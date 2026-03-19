@@ -1,23 +1,30 @@
 TODOs:
-1. figure out if we need to check printed output for gpio lab 
-2. figure out of if we want test to be for tags or whole labs
-3. figure out if he will defining all states or some states 
-        -- then for state machine framework we can grab variable 
-4. figure out if we are doing timers and atomic operations lab testing 
-    --> do lab 
-
-5. upload all code 
-6. create all branches 
-7. start work on next lab, either timers & atomic or threads & kernel events 
+1. upload all code --> amelia atm
+2. create all branches --> amelia atm
+3. logging for gpio lab
+4. start work on next lab, either timers & atomic or threads & kernel events 
 
 
-Plan:
-march 19 - 26 = timers and atomic operations 
-march 26 - april 2 = threads and kernel events && state machine framework
-april 2 - 9 = split adc & pwm (amelia work on one, sophie work on one)
+
+
+
+
+
+
+
+PLAN:
+march 19 - 26 = threads and kernel events && state machine framework
+march 26 - april 2 = split adc & pwm (amelia work on one, sophie work on one)
+april 2 - 9 = ecg ble temp
 april 9 - 16 = ecg ble temp
-april 16 - 23 = ecg ble temp
-april 23 - 30 = want to be done by 23rd but this week will be a buffer since its final exam period 
+april 16 - 23 = want to be done by 23rd but this week will be a buffer since its final exam period
+april 23 - 30 = time for stuff at the end!!
+
+IF WE HAVE TIME AT THE END:
+	⁃	makefile for syntax checks (03-19)
+	⁃	make framework more generic (03-19)
+	⁃	timers lab logging stuff
+	⁃	i2c emulation for temperature sensor (zephyr built-in!!)
 
 
 Lab order:
