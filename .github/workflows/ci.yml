@@ -153,30 +153,26 @@ jobs:
         run: |
           tar -xzf zephyr_workspace.tar.gz
       
-      # - name: Check code specs
-      #   run: |
-      #     set -e
-      #     cd lab_kernel
-      #     grep -Eq '#define[[:space:]]+LED_BLINK_FREQ_HZ[[:space:]]+2' src/main.c
-      #     grep -Eq '#define[[:space:]]+FREQ_UP_INC_HZ[[:space:]]+1' src/main.c
-      #     grep -Eq '#define[[:space:]]+FREQ_DOWN_INC_HZ[[:space:]]+1' src/main.c
-      #     grep -Eq 'heartbeat_led' src/main.c
-      #     grep -Eq 'iv_pump_led' src/main.c
-      #     grep -Eq 'buzzer_led' src/main.c
-      #     grep -Eq 'error_led' src/main.c
-      #     grep -Eq 'sleep_button' src/main.c
-      #     grep -Eq 'freq_up_button' src/main.c
-      #     grep -Eq 'freq_down_button' src/main.c
-      #     grep -Eq 'reset_button' src/main.c
-      #     grep -Eq 'heartbeat' boards/native_posix.overlay
-      #     grep -Eq 'ivpump' boards/native_posix.overlay
-      #     grep -Eq 'buzzer' boards/native_posix.overlay
-      #     grep -Eq 'error' boards/native_posix.overlay
-      #     grep -Eq 'sleepbutton' boards/native_posix.overlay
-      #     grep -Eq 'frequpbutton' boards/native_posix.overlay
-      #     grep -Eq 'freqdownbutton' boards/native_posix.overlay
-      #     grep -Eq 'resetbutton' boards/native_posix.overlay
-      #     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!echo TODO based on this lab's spec
+      - name: Check code specs
+        run: |
+          set -e
+          cd lab_kernel
+          grep -Eq 'heartbeat_led' src/main.c
+          grep -Eq 'iv_pump_led' src/main.c
+          grep -Eq 'buzzer_led' src/main.c
+          grep -Eq 'error_led' src/main.c
+          grep -Eq 'sleep_button' src/main.c
+          grep -Eq 'freq_up_button' src/main.c
+          grep -Eq 'freq_down_button' src/main.c
+          grep -Eq 'reset_button' src/main.c
+          grep -Eq 'heartbeat' boards/native_posix.overlay
+          grep -Eq 'ivpump' boards/native_posix.overlay
+          grep -Eq 'buzzer' boards/native_posix.overlay
+          grep -Eq 'error' boards/native_posix.overlay
+          grep -Eq 'sleepbutton' boards/native_posix.overlay
+          grep -Eq 'frequpbutton' boards/native_posix.overlay
+          grep -Eq 'freqdownbutton' boards/native_posix.overlay
+          grep -Eq 'resetbutton' boards/native_posix.overlay
       
       - name: Build for native_sim
         run: |
