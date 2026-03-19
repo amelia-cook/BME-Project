@@ -11,6 +11,7 @@ jobs:
       gpio: ${{ steps.filter.outputs.gpio }}
       kernel: ${{ steps.filter.outputs.kernel }}
       smf: ${{ steps.filter.outputs.smf }}
+      adc: ${{ steps.filter.outputs.adc }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -26,6 +27,8 @@ jobs:
               - 'lab_kernel/**'
             smf:
               - 'lab_smf/**'
+            adc:
+              - 'lab_adc/**'
   
   zephyr_setup:
     runs-on: ubuntu-latest
@@ -283,4 +286,83 @@ jobs:
       #       echo "Could not determine test status"
       #       exit 1
       #     fi
+  
+  adc_tests:
+    needs: [changes, zephyr_setup]
+    if: needs.changes.outputs.adc == 'true'
+    runs-on: ubuntu-latest
+    container:
+      image: hardwario/nrf-connect-sdk-build:v2.9.0-1
 
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Download workspace
+        uses: actions/download-artifact@v4
+        with:
+          name: zephyr-workspace
+      
+      - name: Extract workspace
+        run: |
+          tar -xzf zephyr_workspace.tar.gz
+      
+      # - name: Check code specs
+      #   run: |
+      #     set -e
+      #     cd lab_adc
+      #     grep -Eq '#define[[:space:]]+LED_BLINK_FREQ_HZ[[:space:]]+2' src/main.c
+      #     grep -Eq '#define[[:space:]]+FREQ_UP_INC_HZ[[:space:]]+1' src/main.c
+      #     grep -Eq '#define[[:space:]]+FREQ_DOWN_INC_HZ[[:space:]]+1' src/main.c
+      #     grep -Eq 'heartbeat_led' src/main.c
+      #     grep -Eq 'iv_pump_led' src/main.c
+      #     grep -Eq 'buzzer_led' src/main.c
+      #     grep -Eq 'error_led' src/main.c
+      #     grep -Eq 'sleep_button' src/main.c
+      #     grep -Eq 'freq_up_button' src/main.c
+      #     grep -Eq 'freq_down_button' src/main.c
+      #     grep -Eq 'reset_button' src/main.c
+      #     grep -Eq 'heartbeat' boards/native_posix.overlay
+      #     grep -Eq 'ivpump' boards/native_posix.overlay
+      #     grep -Eq 'buzzer' boards/native_posix.overlay
+      #     grep -Eq 'error' boards/native_posix.overlay
+      #     grep -Eq 'sleepbutton' boards/native_posix.overlay
+      #     grep -Eq 'frequpbutton' boards/native_posix.overlay
+      #     grep -Eq 'freqdownbutton' boards/native_posix.overlay
+      #     grep -Eq 'resetbutton' boards/native_posix.overlay
+      #     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!echo TODO based on this lab's spec
+      
+      # - name: Build for native_sim
+      #   run: |
+      #     cd lab_adc
+      #     west build -b native_sim -- \
+      #       -DEXTRA_CONF_FILE=sim.prj.conf
+      
+      # - name: Build tests for native_sim
+      #   run: |
+      #     cd lab_adc
+      #     west build -b native_sim --build-dir=build_test -- \
+      #       -DDTC_OVERLAY_FILE=boards/native_sim.overlay \
+      #       -DEXTRA_CONF_FILE=test.prj.conf \
+      #       -DTEST_BUILD=ON
+      
+      # - name: Run unit tests
+      #   run: |
+      #     cd lab_adc
+      #     chmod +x build_test/zephyr/zephyr.exe
+      #     build_test/zephyr/zephyr.exe | tee test_output.log
+          
+      # - name: Check test results
+      #   run: |
+      #     cd lab_adc
+      #     cat test_output.log
+      #     if grep -q "PROJECT EXECUTION SUCCESSFUL" test_output.log; then
+      #       echo "All tests passed!"
+      #       exit 0
+      #     elif grep -q "PROJECT EXECUTION FAILED" test_output.log; then
+      #       echo "Tests failed!"
+      #       exit 1
+      #     else
+      #       echo "Could not determine test status"
+      #       exit 1
+      #     fi
