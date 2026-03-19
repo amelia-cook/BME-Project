@@ -48,7 +48,3 @@
  *  - entered error state
  *  - 
  */
-
-tests to write:
-- initial frequency 2
-- 
