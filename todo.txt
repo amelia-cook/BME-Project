@@ -1,16 +1,12 @@
 TODOs:
-1. upload all code --> amelia atm
-2. create all branches --> amelia atm
 3. logging for gpio lab
+    3a. plus some more tests too (see below)
 4. start work on next lab, either timers & atomic or threads & kernel events 
 
-
-changes I made:
-- changed “gpio_lab” to “lab_gpio” so that the labs would be together in the repo and easier to find
-- added lab_kernel code and basic pipeline setup
-- added lab_smf code and basic pipeline setup
-- added lab_adc code and basic pipeline setup
-
+more gpio tests??
+- test the action LEDs are actually out of phase with each other
+- test buttons (besides reset) are disabled in error state
+- phase restoration after sleep
 
 
 
