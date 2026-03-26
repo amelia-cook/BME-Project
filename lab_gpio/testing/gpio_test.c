@@ -568,8 +568,70 @@ ZTEST(state_machine_tests, test_15_freq_up_sleep_buttons_disabled)
     assert_led_off(&error_led, "error");
 }
 
+ZTEST(state_machine_tests, test_16_error_state_buttons_disabled)
+{
+    start_main(1000);
 
+    /* Get into error state via freq down twice */
+    simulate_button_click(&freq_down_button);
+    k_event_wait(&program_test_events, FREQ_DOWN_TEST_NOTICE, true, K_MSEC(200));
 
+    simulate_button_click(&freq_down_button);
+    k_event_wait(&program_test_events, FREQ_DOWN_TEST_NOTICE, true, K_MSEC(200));
+
+    k_msleep(100); /* let ERROR state settle */
+
+    /* Try all three disabled buttons — none should change state */
+    simulate_button_click(&freq_up_button);
+    simulate_button_click(&freq_down_button);
+    simulate_button_click(&sleep_button);
+    k_msleep(50);
+
+    uint32_t ev = k_event_wait(&program_test_events,
+                            FREQ_UP_TEST_NOTICE | FREQ_DOWN_TEST_NOTICE | SLEEP_TEST_NOTICE,
+                            true,
+                            K_MSEC(100));
+    zassert_equal(ev, 0, "Button events should not fire in error state");
+
+    /* Error state should be unchanged */
+    assert_led_on(&error_led, "error");
+    assert_led_off(&iv_pump_led, "iv_pump");
+    assert_led_off(&buzzer_led, "buzzer");
+    assert_led_blink_freq(&heartbeat_led, 2000, 1, 1, "heartbeat");
+}
+
+ZTEST(state_machine_tests, test_17_phase_preserved_after_sleep)
+{
+    start_main(1000);
+
+    /* Go to sleep and wake up */
+    simulate_button_click(&sleep_button);
+    k_event_wait(&program_test_events, SLEEP_TEST_NOTICE, true, K_MSEC(200));
+
+    simulate_button_click(&sleep_button);
+    k_event_wait(&program_test_events, SLEEP_BTN_TEST_NOTICE, true, K_MSEC(200));
+
+    /* Sample the two LEDs repeatedly over one full cycle (500ms at 2Hz)
+     * and verify they are never in the same state at the same time */
+    bool phase_violation = false;
+    for (int i = 0; i < 20; i++) {
+        int iv   = gpio_emul_output_get(iv_pump_led.port, iv_pump_led.pin);
+        int buzz = gpio_emul_output_get(buzzer_led.port, buzzer_led.pin);
+
+        if (iv == buzz) {
+            phase_violation = true;
+            break;
+        }
+        k_msleep(25);
+    }
+
+    zassert_false(phase_violation,
+        "iv_pump_led and buzzer_led should be out of phase after sleep wake-up");
+
+    /* Frequency should also be preserved at default 2 Hz */
+    assert_led_blink_freq(&iv_pump_led, 2000, 2, 1, "iv_pump");
+    assert_led_blink_freq(&buzzer_led,  2000, 2, 1, "buzzer");
+}
 
 
 
