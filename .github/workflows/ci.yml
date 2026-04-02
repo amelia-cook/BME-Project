@@ -29,6 +29,8 @@ jobs:
         id: filter
         uses: dorny/paths-filter@v3
         with:
+          base: ${{ github.event.before }}
+          head: ${{ github.sha }}
           filters: |
             gpio:
               - 'lab_gpio/**'
