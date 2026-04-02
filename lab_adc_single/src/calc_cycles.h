@@ -1,1 +1,0 @@
-int calc_cycles();

@@ -9,11 +9,10 @@
         // buzzer = &led2;
         error = &led3;
         readbutton = &button0;  // this corresponds to SW1 on the board
-        samplingbutton = &button1;
-        sleepbutton = &button2;
+        sleepbutton = &button1;
+        // freqdownbutton = &button2;
         resetbutton = &button3;
         vadc = &vadc;
-        diffadc = &diffadc;
         };
 };
 
@@ -28,15 +27,6 @@
         zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
         zephyr,input-positive = <NRF_SAADC_AIN0>; // P0.02
         zephyr,resolution = <12>;  // bit depth
-    };
-    diffadc: channel@1 {
-        reg = <1>;  // channel number
-        zephyr,reference = "ADC_REF_INTERNAL";
-        zephyr,gain = "ADC_GAIN_1_5";
-        zephyr,acquisition-time = <ADC_ACQ_TIME(ADC_ACQ_TIME_MICROSECONDS, 40)>;
-        zephyr,input-positive = <NRF_SAADC_AIN1>; // P0.03
-        zephyr,input-negative = <NRF_SAADC_AIN2>; // P0.04
-        zephyr,resolution = <12>;
     };
     status = "okay"; // enable the ADC
 };
