@@ -1,1 +1,89 @@
-TODO: FIGURE THIS OUT
+/ {
+    aliases {
+        heartbeat   = &sim_adc_led1;
+        blinker     = &sim_adc_led2;
+        error       = &sim_adc_led4;
+
+        readbutton      = &sim_adc_btn1;   /* BUTTON0 → read_button   */
+        samplingbutton  = &sim_adc_btn2;   /* BUTTON1 → sample_button */
+        sleepbutton     = &sim_adc_btn3;   /* BUTTON2 → sleep_button  */
+        resetbutton     = &sim_adc_btn4;   /* BUTTON3 → reset_button  */
+
+        vadc    = &vadc_ch;
+        diffadc = &diffadc_ch;
+    };
+
+    sim_adc_leds {
+        compatible = "gpio-leds";
+
+        sim_adc_led1: led_20 {
+            gpios = <&gpio0 20 GPIO_ACTIVE_HIGH>;
+            label = "SIM_ADC_HB_LED";
+        };
+        sim_adc_led2: led_21 {
+            gpios = <&gpio0 21 GPIO_ACTIVE_HIGH>;
+            label = "SIM_ADC_BLINKER_LED";
+        };
+        sim_adc_led4: led_23 {
+            gpios = <&gpio0 23 GPIO_ACTIVE_HIGH>;
+            label = "SIM_ADC_ERROR_LED";
+        };
+    };
+
+    sim_adc_keys {
+        compatible = "gpio-keys";
+
+        sim_adc_btn1: key_24 {
+            gpios = <&gpio0 24 GPIO_ACTIVE_HIGH>;
+            label = "SIM_ADC_READ_BTN";
+            zephyr,code = <1>;
+        };
+        sim_adc_btn2: key_25 {
+            gpios = <&gpio0 25 GPIO_ACTIVE_HIGH>;
+            label = "SIM_ADC_SAMPLE_BTN";
+            zephyr,code = <1>;
+        };
+        sim_adc_btn3: key_26 {
+            gpios = <&gpio0 26 GPIO_ACTIVE_HIGH>;
+            label = "SIM_ADC_SLEEP_BTN";
+            zephyr,code = <1>;
+        };
+        sim_adc_btn4: key_27 {
+            gpios = <&gpio0 27 GPIO_ACTIVE_HIGH>;
+            label = "SIM_ADC_RESET_BTN";
+            zephyr,code = <1>;
+        };
+    };
+
+    adc_emul: adc_emul {
+        compatible = "zephyr,adc-emul";
+        nchannels = <3>;
+        ref-internal-mv = <3000>;
+
+        #io-channel-cells = <1>;
+        #address-cells = <1>;
+        #size-cells = <0>;
+        status = "okay";
+
+        vadc_ch: channel@0 {
+            reg = <0>;
+            zephyr,gain             = "ADC_GAIN_1_5";
+            zephyr,reference        = "ADC_REF_INTERNAL";
+            zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
+            zephyr,resolution       = <12>;
+        };
+
+        diffadc_ch: channel@1 {
+            reg = <1>;
+            zephyr,gain             = "ADC_GAIN_1_5";
+            zephyr,reference        = "ADC_REF_INTERNAL";
+            zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
+            zephyr,resolution       = <12>;
+            zephyr,differential;
+        };
+    };
+};
+
+&gpio0 {
+    status = "okay";
+};
