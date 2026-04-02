@@ -6,6 +6,7 @@
 #include <zephyr/drivers/adc.h> // CONFIG_ADC=y
 // #include <zephyr/drivers/pwm.h> // CONFIG_PWM=y
 #include <zephyr/smf.h> // CONFIG_SMF=y
+#include "bme554_lib.h"
 
 #include "calc_cycles.h"
 
@@ -180,18 +181,22 @@ int main(void)
 
 void read_button_callback(const struct device *dev, struct gpio_callback *cb, uint32_t pins) {
     k_event_post(&button_events, READ_EVENT);
+    ADC_READ_TRIGGERED();
 }
 
 void sample_button_callback(const struct device *dev, struct gpio_callback *cb, uint32_t pins) {
     k_event_post(&button_events, SAMPLE_EVENT);
+    ADC_SAMPLE_TRIGGERED();
 }
 
 void sleep_button_callback(const struct device *dev, struct gpio_callback *cb, uint32_t pins) {
     k_event_post(&button_events, SLEEP_EVENT);
+    SLEEP_PRESSED();
 }
 
 void reset_button_callback(const struct device *dev, struct gpio_callback *cb, uint32_t pins) {
     k_event_post(&button_events, RESET_EVENT);
+    RESET_PRESSED();
 }
 
 enum adc_action adc_callback(const struct device *dev, const struct adc_sequence *sequence, uint16_t sampling_index) {
@@ -399,6 +404,8 @@ static void init(void *o) {
 
 static void reset(void *o) {
     smf_set_state(SMF_CTX(&s_context), &states[IDLE]);
+    
+    RESET_STATUS();
 }
 
 static void idle_entry(void *o) {
@@ -463,6 +470,8 @@ static void sleep_run(void *o) {
         LOG_INF("Reset button pressed");
         smf_set_state(SMF_CTX(&s_context), &states[RESET]);
     }
+    
+    SLEEP_STATE();
 }
 
 static void reading_entry(void *o) {
@@ -517,6 +526,8 @@ static void reading_run(void *o) {
     
     s_context.ontime = (MS_PER_HZ / s_context.freq) / 10;
     s_context.offtime = (MS_PER_HZ / s_context.freq) - s_context.ontime;
+    
+    ADC_READ_COMPLETE(s_context.millivolts, s_context.freq);
 }
 
 static void reading_exit(void *o) {
@@ -576,6 +587,8 @@ static void blinking_exit(void *o) {
     k_timer_stop(&led_off_timer);
     
     LOG_INF("Blinking timer complete");
+    
+    ADC_BLINK_COMPLETE();
 }
 
 static void error_entry(void *o) {
@@ -594,6 +607,8 @@ static void error_entry(void *o) {
         LOG_ERR("Failed to set error LED.");
         smf_set_terminate(SMF_CTX(&s_context), err);
     }
+    
+    ERROR_STATE();
 }
 
 static void error_run(void *o) {
@@ -653,9 +668,13 @@ static void sample_run(void *o) {
     
     uint32_t events = k_event_wait(&button_events, SAMPLE_COMPLETE_EVENT, true, K_FOREVER);
     if (events & SAMPLE_COMPLETE_EVENT) {
-        LOG_INF("The calculated number of cycles is %d", calc_cycles(diff_buf, BUFFER_ARRAY_LEN));
+        int cycles = calc_cycles(diff_buf, BUFFER_ARRAY_LEN);
+        LOG_INF("The calculated number of cycles is %d", cycles);
         LOG_HEXDUMP_INF(diff_buf, sizeof(diff_buf), "Differential ADC Samples");
         smf_set_state(SMF_CTX(&s_context), &states[IDLE]);
+        
+        ADC_SAMPLE_COMPLETE();
+        ADC_CYCLES_COMPUTED(cycles);
     }
 } 
 
