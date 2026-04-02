@@ -351,6 +351,8 @@ ZTEST(state_machine_tests, test_07_sleep_sleep)
                           K_MSEC(200));
     (void) events;
     
+    k_msleep(100);
+    
     assert_led_blink_freq(&heartbeat_led, 2000, 1, 1, "heartbeat");
     assert_led_blink_freq(&iv_pump_led, 2000, 2, 1, "iv_pump");
     assert_led_blink_freq(&buzzer_led, 2000, 2, 1, "buzzer");
@@ -380,6 +382,8 @@ ZTEST(state_machine_tests, test_08_freq_up_sleep_sleep)
                           true,
                           K_MSEC(200));
     (void) events;
+    
+    k_msleep(100);
     
     assert_led_blink_freq(&heartbeat_led, 2000, 1, 1, "heartbeat");
     assert_led_blink_freq(&iv_pump_led, 2000, 3, 1, "iv_pump");
