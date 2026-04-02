@@ -307,6 +307,8 @@ int main(void)
                 k_timer_stop(&action_timer);
                 remaining_phase = 0;
                 
+                ERROR_STATE();
+                
                 state = ERROR;
                 break;
             case ERROR:
@@ -319,6 +321,8 @@ int main(void)
                 break;
             case RESET:
                 action_led_hz = LED_BLINK_FREQ_HZ;
+                
+                RESET_STATUS();
                 
                 state = BLINKING_ENTRY;
                 break;
@@ -338,6 +342,8 @@ int main(void)
                 /* STOP ACTION TIMER */
                 remaining_phase = k_timer_remaining_get(&action_timer);
                 k_timer_stop(&action_timer);
+                
+                SLEEP_STATE();
                 
                 state = SLEEP;
                 break;
@@ -364,18 +370,22 @@ int main(void)
 }
 
 void sleep_button_callback(const struct device *dev, struct gpio_callback *cb, uint32_t pins) {
+    SLEEP_PRESSED();
     k_event_post(&button_events, SLEEP_EVENT);
 }
 
 void freq_up_button_callback(const struct device *dev, struct gpio_callback *cb, uint32_t pins) {
+    FREQUENCY_UP_PRESSED(action_led_hz);
     k_event_post(&button_events, FREQ_UP_EVENT);
 }
 
 void freq_down_button_callback(const struct device *dev, struct gpio_callback *cb, uint32_t pins) {
+    FREQUENCY_DOWN_PRESSED(action_led_hz);
     k_event_post(&button_events, FREQ_DOWN_EVENT);
 }
 
 void reset_button_callback(const struct device *dev, struct gpio_callback *cb, uint32_t pins) {
+    RESET_PRESSED();
     k_event_post(&button_events, RESET_EVENT);
 }
 
