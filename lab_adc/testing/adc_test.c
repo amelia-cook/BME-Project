@@ -3,7 +3,15 @@
 #include <zephyr/ztest.h>
 #include <zephyr/drivers/gpio/gpio_emul.h>
 #include <zephyr/drivers/adc/adc_emul.h>
-#include <math.h>   /* sinf(), M_PI */
+/*
+ * M_PI is not guaranteed by C11 strict mode (<math.h> only exposes it
+ * with _GNU_SOURCE or _USE_MATH_DEFINES).  Define a local fallback so
+ * the build is portable across toolchains without touching prj.conf.
+ */
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+#include <math.h>   /* sinf() */
 
 /* ================================================================== */
 /*  ADC emulator device handle                                        */
@@ -154,8 +162,11 @@ static void assert_led_on(const struct gpio_dt_spec *led, const char *led_name)
 /* ================================================================== */
 
 /*
- * adc_emul constant-value callback signature:
- *   int my_cb(const struct device *dev, unsigned int chan, uint32_t *result)
+ * adc_emul value callback signature (from zephyr/drivers/adc/adc_emul.h):
+ *   int my_cb(const struct device *dev, unsigned int chan,
+ *             void *data, uint32_t *result)
+ * The `data` pointer carries whatever was passed as the last argument to
+ * adc_emul_value_func_set(); we always pass NULL so it is unused.
  * Returns 0 on success.
  */
 
@@ -165,10 +176,12 @@ static uint32_t g_ain0_raw_value;
 
 static int ain0_const_cb(const struct device *dev,
                          unsigned int chan,
+                         void *data,
                          uint32_t *result)
 {
     ARG_UNUSED(dev);
     ARG_UNUSED(chan);
+    ARG_UNUSED(data);
     *result = g_ain0_raw_value;
     return 0;
 }
@@ -330,10 +343,12 @@ static volatile uint32_t g_sine_sample_idx;
 
 static int ain1_sine_cb(const struct device *dev,
                         unsigned int chan,
+                        void *data,
                         uint32_t *result)
 {
     ARG_UNUSED(dev);
     ARG_UNUSED(chan);
+    ARG_UNUSED(data);
 
     /* 
      * Convert sample index to time:
@@ -361,10 +376,12 @@ static int ain1_sine_cb(const struct device *dev,
 
 static int ain2_const_zero_cb(const struct device *dev,
                               unsigned int chan,
+                              void *data,
                               uint32_t *result)
 {
     ARG_UNUSED(dev);
     ARG_UNUSED(chan);
+    ARG_UNUSED(data);
     /*
      * Drive AIN2 at midpoint (amplitude_raw) so the differential
      * result buf[i] = AIN1[i] - AIN2[i] oscillates symmetrically
@@ -578,10 +595,12 @@ ZTEST(adc_single_sample_tests, test_p1_07_read_button_disabled_during_blink)
  */
 static int ain0_over_range_cb(const struct device *dev,
                               unsigned int chan,
+                              void *data,
                               uint32_t *result)
 {
     ARG_UNUSED(dev);
     ARG_UNUSED(chan);
+    ARG_UNUSED(data);
     *result = 4095;  /* max raw; at 3 V ref this hits exactly 3000 mV */
     return 0;
 }
@@ -830,10 +849,11 @@ ZTEST(diff_adc_tests, test_p2_06_reset_button_disabled_during_sample)
 /*
  * DC signal (constant midpoint value) → zero crossings = 0.
  */
-static int ain1_dc_cb(const struct device *dev, unsigned int chan, uint32_t *result)
+static int ain1_dc_cb(const struct device *dev, unsigned int chan, void *data, uint32_t *result)
 {
     ARG_UNUSED(dev);
     ARG_UNUSED(chan);
+    ARG_UNUSED(data);
     *result = 2048;  /* positive DC, above midpoint */
     return 0;
 }

@@ -110,17 +110,16 @@ static void assert_led_on(const struct gpio_dt_spec *led, const char *led_name);
 
 /*
  * Sine wave generator state used by the adc_emul value callback.
- * One instance per channel (AIN1, AIN2 driven in anti-phase for differential).
+ * AIN1 is driven with the sine; AIN2 is held at the midpoint DC value
+ * so the differential result oscillates cleanly around zero.
  */
 struct sine_ctx {
-    int freq_hz;         /* signal frequency                           */
-    int amplitude_raw;   /* peak amplitude in raw ADC counts           */
-    int sample_interval_us; /* matches student's SAMPLE_INTERVAL macro */
-    int channel;         /* 1 → AIN1 (positive), 2 → AIN2 (negative) */
+    int freq_hz;            /* signal frequency                           */
+    int amplitude_raw;      /* peak amplitude in raw ADC counts           */
+    int sample_interval_us; /* matches student's SAMPLE_INTERVAL macro    */
 };
 
 static struct sine_ctx g_sine_ain1;
-static struct sine_ctx g_sine_ain2;
 
 /*
  * set_ain0_mv() — inject a constant voltage on AIN0.
