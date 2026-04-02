@@ -6,6 +6,7 @@
 // #include <zephyr/drivers/adc.h> // CONFIG_ADC=y
 // #include <zephyr/drivers/pwm.h> // CONFIG_PWM=y
 #include <zephyr/smf.h> // CONFIG_SMF=y
+#include "bme554_lib.h"
 
 LOG_MODULE_REGISTER(main, LOG_LEVEL_DBG);
 
@@ -132,18 +133,22 @@ int main(void)
 }
 
 void sleep_button_callback(const struct device *dev, struct gpio_callback *cb, uint32_t pins) {
+    SLEEP_PRESSED();
     k_event_post(&button_events, SLEEP_EVENT);
 }
 
 void freq_up_button_callback(const struct device *dev, struct gpio_callback *cb, uint32_t pins) {
+    FREQUENCY_UP_PRESSED(action_led_hz);
     k_event_post(&button_events, FREQ_UP_EVENT);
 }
 
 void freq_down_button_callback(const struct device *dev, struct gpio_callback *cb, uint32_t pins) {
+    FREQUENCY_DOWN_PRESSED(action_led_hz);
     k_event_post(&button_events, FREQ_DOWN_EVENT);
 }
 
 void reset_button_callback(const struct device *dev, struct gpio_callback *cb, uint32_t pins) {
+    RESET_PRESSED();
     k_event_post(&button_events, RESET_EVENT);
 }
 
@@ -389,6 +394,8 @@ static void sleep_entry(void *o) {
     /* STOP ACTION TIMER */
     s_context.remaining_phase = k_timer_remaining_get(&action_timer);
     k_timer_stop(&action_timer);
+    
+    SLEEP_STATE();
 }
 
 static void sleep_run(void *o) {
@@ -419,6 +426,8 @@ static void reset(void *o) {
                     K_MSEC(MS_PER_HZ / (s_context.action_led_hz * 2)));
     
     smf_set_state(SMF_CTX(&s_context), &states[BLINKING]);
+    
+    RESET_STATUS();
 }
 
 static void error_entry(void *o) {
@@ -440,6 +449,8 @@ static void error_entry(void *o) {
     
     /* STOP ACTION TIMER */
     k_timer_stop(&action_timer);
+    
+    ERROR_STATE();
 }
 
 static void error_run(void *o) {

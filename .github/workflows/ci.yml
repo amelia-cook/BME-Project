@@ -240,30 +240,31 @@ jobs:
         run: |
           tar -xzf zephyr_workspace.tar.gz
       
-      # - name: Check code specs
-      #   run: |
-      #     set -e
-      #     cd lab_smf
-      #     grep -Eq '#define[[:space:]]+LED_BLINK_FREQ_HZ[[:space:]]+2' src/main.c
-      #     grep -Eq '#define[[:space:]]+FREQ_UP_INC_HZ[[:space:]]+1' src/main.c
-      #     grep -Eq '#define[[:space:]]+FREQ_DOWN_INC_HZ[[:space:]]+1' src/main.c
-      #     grep -Eq 'heartbeat_led' src/main.c
-      #     grep -Eq 'iv_pump_led' src/main.c
-      #     grep -Eq 'buzzer_led' src/main.c
-      #     grep -Eq 'error_led' src/main.c
-      #     grep -Eq 'sleep_button' src/main.c
-      #     grep -Eq 'freq_up_button' src/main.c
-      #     grep -Eq 'freq_down_button' src/main.c
-      #     grep -Eq 'reset_button' src/main.c
-      #     grep -Eq 'heartbeat' boards/native_posix.overlay
-      #     grep -Eq 'ivpump' boards/native_posix.overlay
-      #     grep -Eq 'buzzer' boards/native_posix.overlay
-      #     grep -Eq 'error' boards/native_posix.overlay
-      #     grep -Eq 'sleepbutton' boards/native_posix.overlay
-      #     grep -Eq 'frequpbutton' boards/native_posix.overlay
-      #     grep -Eq 'freqdownbutton' boards/native_posix.overlay
-      #     grep -Eq 'resetbutton' boards/native_posix.overlay
-      #     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!echo TODO based on this lab's spec
+      - name: Check code specs
+        run: |
+          set -e
+          cd lab_smf
+          grep -Eq '#define[[:space:]]+LED_BLINK_FREQ_HZ[[:space:]]+2' src/main.c
+          grep -Eq '#define[[:space:]]+FREQ_UP_INC_HZ[[:space:]]+1' src/main.c
+          grep -Eq '#define[[:space:]]+FREQ_DOWN_INC_HZ[[:space:]]+1' src/main.c
+          grep -Eq 'heartbeat_led' src/main.c
+          grep -Eq 'iv_pump_led' src/main.c
+          grep -Eq 'buzzer_led' src/main.c
+          grep -Eq 'error_led' src/main.c
+          grep -Eq 'sleep_button' src/main.c
+          grep -Eq 'freq_up_button' src/main.c
+          grep -Eq 'freq_down_button' src/main.c
+          grep -Eq 'reset_button' src/main.c
+          grep -Eq 'heartbeat' boards/native_posix.overlay
+          grep -Eq 'ivpump' boards/native_posix.overlay
+          grep -Eq 'buzzer' boards/native_posix.overlay
+          grep -Eq 'error' boards/native_posix.overlay
+          grep -Eq 'sleepbutton' boards/native_posix.overlay
+          grep -Eq 'frequpbutton' boards/native_posix.overlay
+          grep -Eq 'freqdownbutton' boards/native_posix.overlay
+          grep -Eq 'resetbutton' boards/native_posix.overlay
+          grep -Eq 'INIT' src/main.c
+          grep -Eq 'ERROR' src/main.c
       
       - name: Build for native_sim
         run: |
@@ -271,34 +272,34 @@ jobs:
           west build -b native_sim -- \
             -DEXTRA_CONF_FILE=sim.prj.conf
       
-      # - name: Build tests for native_sim
-      #   run: |
-      #     cd lab_smf
-      #     west build -b native_sim --build-dir=build_test -- \
-      #       -DDTC_OVERLAY_FILE=boards/native_sim.overlay \
-      #       -DEXTRA_CONF_FILE=test.prj.conf \
-      #       -DTEST_BUILD=ON
+      - name: Build tests for native_sim
+        run: |
+          cd lab_smf
+          west build -b native_sim --build-dir=build_test -- \
+            -DDTC_OVERLAY_FILE=boards/native_sim.overlay \
+            -DEXTRA_CONF_FILE=test.prj.conf \
+            -DTEST_BUILD=ON
       
-      # - name: Run unit tests
-      #   run: |
-      #     cd lab_smf
-      #     chmod +x build_test/zephyr/zephyr.exe
-      #     build_test/zephyr/zephyr.exe | tee test_output.log
+      - name: Run unit tests
+        run: |
+          cd lab_smf
+          chmod +x build_test/zephyr/zephyr.exe
+          build_test/zephyr/zephyr.exe | tee test_output.log
           
-      # - name: Check test results
-      #   run: |
-      #     cd lab_smf
-      #     cat test_output.log
-      #     if grep -q "PROJECT EXECUTION SUCCESSFUL" test_output.log; then
-      #       echo "All tests passed!"
-      #       exit 0
-      #     elif grep -q "PROJECT EXECUTION FAILED" test_output.log; then
-      #       echo "Tests failed!"
-      #       exit 1
-      #     else
-      #       echo "Could not determine test status"
-      #       exit 1
-      #     fi
+      - name: Check test results
+        run: |
+          cd lab_smf
+          cat test_output.log
+          if grep -q "PROJECT EXECUTION SUCCESSFUL" test_output.log; then
+            echo "All tests passed!"
+            exit 0
+          elif grep -q "PROJECT EXECUTION FAILED" test_output.log; then
+            echo "Tests failed!"
+            exit 1
+          else
+            echo "Could not determine test status"
+            exit 1
+          fi
   
   adc_tests:
     needs: [changes, zephyr_setup]
