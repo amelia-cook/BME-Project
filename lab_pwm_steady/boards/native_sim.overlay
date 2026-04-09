@@ -58,7 +58,7 @@
     pwm {
         compatible = "pwm-leds";
         pwmch1: pwm_1 {
-            pwms = <&pwm0 0 1000000 PWM_POLARITY_INVERTED>;
+            pwms = <&pwm0 0 1000000 1>;
             label = "PWM_CH1";
         };
     };
