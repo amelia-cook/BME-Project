@@ -6,6 +6,7 @@
 #include <zephyr/drivers/adc.h> // CONFIG_ADC=y
 // #include <zephyr/drivers/pwm.h> // CONFIG_PWM=y
 #include <zephyr/smf.h> // CONFIG_SMF=y
+#include "bme554_lib.h"
 
 LOG_MODULE_REGISTER(main, LOG_LEVEL_DBG);
 
