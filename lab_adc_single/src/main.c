@@ -195,6 +195,8 @@ void blinking_interrupt_handler(struct k_timer *blinking_timer) {
     k_timer_stop(&led_off_timer);
     
     s_context.endtime = k_uptime_get();
+
+    ADC_BLINK_COMPLETE(); 
     
     k_event_post(&button_events, TIMER_COMPLETE_EVENT);
 }
@@ -340,6 +342,7 @@ static void init(void *o) {
 }
 
 static void reset(void *o) {
+    RESET_STATUS();
     smf_set_state(SMF_CTX(&s_context), &states[IDLE]);
 }
 
@@ -408,6 +411,9 @@ static void reading_entry(void *o) {
         LOG_ERR("Cannot attach callback to sw3.");
         smf_set_terminate(SMF_CTX(&s_context), err);
     }
+
+    // not sure if correct??????
+    gpio_pin_interrupt_configure_dt(&read_button, GPIO_INT_DISABLE);
     
     (void)adc_sequence_init_dt(&adc_vadc, &sequence);
 }
@@ -417,6 +423,8 @@ static void reading_run(void *o) {
     ret = adc_read(adc_vadc.dev, &sequence);
     if (ret < 0) {
         LOG_ERR("Could not read (%d)", ret);
+        smf_set_state(SMF_CTX(&s_context), &states[ERROR]);
+        return;
     } else {
         LOG_DBG("Raw ADC Buffer: %d", buf);
     }
@@ -433,11 +441,16 @@ static void reading_run(void *o) {
     s_context.millivolts = val_mv;
 
     float max_v = MAX_V_MV;
-    s_context.freq = ((s_context.millivolts * (MAX_FREQ_HZ - MIN_FREQ_HZ)) / max_v) + MIN_FREQ_HZ;
+    // s_context.freq = ((s_context.millivolts * (MAX_FREQ_HZ - MIN_FREQ_HZ)) / max_v) + MIN_FREQ_HZ;
+    s_context.freq = ((float)s_context.millivolts * (MAX_FREQ_HZ - MIN_FREQ_HZ)) / max_v + MIN_FREQ_HZ;
     LOG_INF("Mapped frequency (Hz): %f", (double)s_context.freq);
     
-    s_context.ontime = (MS_PER_HZ / s_context.freq) / 10;
-    s_context.offtime = (MS_PER_HZ / s_context.freq) - s_context.ontime;
+    // s_context.ontime = (MS_PER_HZ / s_context.freq) / 10;
+    // s_context.offtime = (MS_PER_HZ / s_context.freq) - s_context.ontime;
+
+    float period = MS_PER_HZ / s_context.freq;
+    s_context.ontime = period * 0.1f;
+    s_context.offtime = period - s_context.ontime;
 
     ADC_READ_COMPLETE(val_mv, s_context.freq);
     
@@ -507,7 +520,7 @@ static void blinking_exit(void *o) {
     k_timer_stop(&led_on_timer);
     k_timer_stop(&led_off_timer);
 
-    ADC_BLINK_COMPLETE();
+    // ADC_BLINK_COMPLETE();
     
     LOG_INF("Blinking timer off, ran for %lld ms", s_context.endtime - s_context.starttime);
 }

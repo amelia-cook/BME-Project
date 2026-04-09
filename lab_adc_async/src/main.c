@@ -8,6 +8,7 @@
 #include <zephyr/smf.h> // CONFIG_SMF=y
 #include "bme554_lib.h"
 
+#include "bme554_lib.h"
 #include "calc_cycles.h"
 
 LOG_MODULE_REGISTER(main, LOG_LEVEL_DBG);
