@@ -1,12 +1,11 @@
-description: "Native simulator PWM controller"
+# File: dts/bindings/pwm/native-sim-pwm.yaml
+description: "Simulated PWM controller for native_sim"
 compatible: "zephyr,native-sim-pwm"
-# Cells: index, period, flags
-# For pwm_leds, #pwm-cells = <3>
-properties:
-  #pwm-cells:
-    type: array
-    description: PWM cells: <index period flags>
-    items:
-      - type: int
-      - type: int
-      - type: int
+# Each PWM spec has 3 cells: <index period polarity>
+# index: PWM channel number
+# period: PWM period in nanoseconds
+# polarity: 0 = normal, 1 = inverted
+pwm-cells:
+  - index
+  - period
+  - polarity
