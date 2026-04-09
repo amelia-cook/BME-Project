@@ -183,17 +183,14 @@ ZTEST(state_machine_tests, test_02_freq_up_one)
 }
 
 /* freq down once + check */
+
 ZTEST(state_machine_tests, test_03_freq_down_once)
 {
     start_main(1000);
-    
     simulate_button_click(&freq_down_button);
-    uint32_t events = k_event_wait(&program_test_events,
-                                   FREQ_DOWN_TEST_NOTICE,
-                                   true,
-                                   K_MSEC(200));
+    uint32_t events = k_event_wait(&program_test_events, FREQ_DOWN_TEST_NOTICE,
+                                   true, K_MSEC(200));
     (void) events;
-    
     assert_led_blink_freq(&heartbeat_led, 2000, 1, 1, "heartbeat");
     assert_led_blink_freq(&iv_pump_led, 2000, 1, 1, "iv_pump");
     assert_led_blink_freq(&buzzer_led, 2000, 1, 1, "buzzer");

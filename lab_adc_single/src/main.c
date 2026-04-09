@@ -393,6 +393,7 @@ static void sleep_run(void *o) {
 }
 
 static void reading_entry(void *o) {
+    ADC_READ_TRIGGERED();
     int err = 0;
     
     /* RECONFIGURE BUTTONS TO DISABLE CALLBACKS */
@@ -429,19 +430,22 @@ static void reading_run(void *o) {
     }
     
     s_context.millivolts = val_mv;
-    
-    if (val_mv < MIN_V_MV || val_mv > MAX_V_MV) {
-        smf_set_state(SMF_CTX(&s_context), &states[ERROR]);
-    } else {
-        smf_set_state(SMF_CTX(&s_context), &states[BLINKING]);
-    }
-    
+
     float max_v = MAX_V_MV;
     s_context.freq = ((s_context.millivolts * (MAX_FREQ_HZ - MIN_FREQ_HZ)) / max_v) + MIN_FREQ_HZ;
     LOG_INF("Mapped frequency (Hz): %f", (double)s_context.freq);
     
     s_context.ontime = (MS_PER_HZ / s_context.freq) / 10;
     s_context.offtime = (MS_PER_HZ / s_context.freq) - s_context.ontime;
+
+    ADC_READ_COMPLETE(val_mv, s_context.freq);
+    
+    if (val_mv < MIN_V_MV || val_mv > MAX_V_MV) {
+        smf_set_state(SMF_CTX(&s_context), &states[ERROR]);
+    } else {
+        smf_set_state(SMF_CTX(&s_context), &states[BLINKING]);
+    }
+
 }
 
 static void reading_exit(void *o) {
@@ -501,6 +505,8 @@ static void blinking_exit(void *o) {
     k_timer_stop(&blinking_timer);
     k_timer_stop(&led_on_timer);
     k_timer_stop(&led_off_timer);
+
+    ADC_BLINK_COMPLETE();
     
     LOG_INF("Blinking timer off, ran for %lld ms", s_context.endtime - s_context.starttime);
 }
