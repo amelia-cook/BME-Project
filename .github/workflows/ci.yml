@@ -433,40 +433,40 @@ jobs:
       #     grep -Eq 'resetbutton' boards/native_posix.overlay
       #     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!echo TODO based on this lab's spec
       
-      # - name: Build for native_sim
-      #   run: |
-      #     cd lab_pwm_steady
-      #     west build -b native_sim -- \
-      #       -DEXTRA_CONF_FILE=sim.prj.conf
+      - name: Build for native_sim
+        run: |
+          cd lab_pwm_steady
+          west build -b native_sim -- \
+            -DEXTRA_CONF_FILE=sim.prj.conf
       
-      # - name: Build tests for native_sim
-      #   run: |
-      #     cd lab_pwm_steady
-      #     west build -b native_sim --build-dir=build_test -- \
-      #       -DDTC_OVERLAY_FILE=boards/native_sim.overlay \
-      #       -DEXTRA_CONF_FILE=test.prj.conf \
-      #       -DTEST_BUILD=ON
+      - name: Build tests for native_sim
+        run: |
+          cd lab_pwm_steady
+          west build -b native_sim --build-dir=build_test -- \
+            -DDTC_OVERLAY_FILE=boards/native_sim.overlay \
+            -DEXTRA_CONF_FILE=test.prj.conf \
+            -DTEST_BUILD=ON
       
-      # - name: Run unit tests
-      #   run: |
-      #     cd lab_pwm_steady
-      #     chmod +x build_test/zephyr/zephyr.exe
-      #     build_test/zephyr/zephyr.exe | tee test_output.log
+      - name: Run unit tests
+        run: |
+          cd lab_pwm_steady
+          chmod +x build_test/zephyr/zephyr.exe
+          build_test/zephyr/zephyr.exe | tee test_output.log
           
-      # - name: Check test results
-      #   run: |
-      #     cd lab_pwm_steady
-      #     cat test_output.log
-      #     if grep -q "PROJECT EXECUTION SUCCESSFUL" test_output.log; then
-      #       echo "All tests passed!"
-      #       exit 0
-      #     elif grep -q "PROJECT EXECUTION FAILED" test_output.log; then
-      #       echo "Tests failed!"
-      #       exit 1
-      #     else
-      #       echo "Could not determine test status"
-      #       exit 1
-      #     fi
+      - name: Check test results
+        run: |
+          cd lab_pwm_steady
+          cat test_output.log
+          if grep -q "PROJECT EXECUTION SUCCESSFUL" test_output.log; then
+            echo "All tests passed!"
+            exit 0
+          elif grep -q "PROJECT EXECUTION FAILED" test_output.log; then
+            echo "Tests failed!"
+            exit 1
+          else
+            echo "Could not determine test status"
+            exit 1
+          fi
 
   pwm_tests:
     needs: [changes, zephyr_setup]

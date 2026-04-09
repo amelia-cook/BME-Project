@@ -1,1 +1,75 @@
-// TODO
+/ {
+    aliases {
+        heartbeat = &sim_ledtest1;
+        ivpump = &sim_ledtest2;
+        buzzer = &sim_ledtest3;
+        error = &sim_ledtest4;
+        sleepbutton = &sim_buttontest1;
+        frequpbutton = &sim_buttontest2;
+        freqdownbutton = &sim_buttontest3;
+        resetbutton = &sim_buttontest4;
+        pwm1 = &pwmch1;
+    };
+
+    sim_leds {
+        compatible = "gpio-leds";
+        sim_ledtest1: led_10 {
+            gpios = <&gpio0 10 GPIO_ACTIVE_HIGH>;
+            label = "SIM_LEDTEST";
+        };
+        sim_ledtest2: led_11 {
+            gpios = <&gpio0 11 GPIO_ACTIVE_HIGH>;
+            label = "SIM_LEDTEST";
+        };
+        sim_ledtest3: led_12 {
+            gpios = <&gpio0 12 GPIO_ACTIVE_HIGH>;
+            label = "SIM_LEDTEST";
+        };
+        sim_ledtest4: led_13 {
+            gpios = <&gpio0 13 GPIO_ACTIVE_HIGH>;
+            label = "SIM_LEDTEST";
+        };
+    };
+    
+    sim_keys {
+        compatible = "gpio-keys";
+        sim_buttontest1: key_14 {
+            gpios = <&gpio0 14 GPIO_ACTIVE_HIGH>;
+            label = "sim_buttontest1";
+            zephyr,code = <1>; /* KEY_ESC */
+        };
+        sim_buttontest2: key_15 {
+            gpios = <&gpio0 15 GPIO_ACTIVE_HIGH>;
+            label = "SIM_buttontest2";
+            zephyr,code = <1>; /* KEY_ESC */
+        };
+        sim_buttontest3: key_16 {
+            gpios = <&gpio0 16 GPIO_ACTIVE_HIGH>;
+            label = "SIM_buttontest3";
+            zephyr,code = <1>; /* KEY_ESC */
+        };
+        sim_buttontest4: key_17 {
+            gpios = <&gpio0 17 GPIO_ACTIVE_HIGH>;
+            label = "SIM_buttontest4";
+            zephyr,code = <1>; /* KEY_ESC */
+        };
+    };
+    
+    pwm {
+        compatible = "pwm-leds";
+        pwmch1: pwm_1 {
+            pwms = <&pwm0 0 PWM_MSEC(1) PWM_POLARITY_INVERTED>;
+            label = "PWM_CH1";
+        };
+    };
+};
+
+&gpio0 {
+    status = "okay";
+};
+
+&pwm0 {
+    compatible = "zephyr,native-sim-pwm";
+    #pwm-cells = <3>;
+    status = "okay";
+};
