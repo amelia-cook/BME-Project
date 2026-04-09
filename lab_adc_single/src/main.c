@@ -196,7 +196,7 @@ void blinking_interrupt_handler(struct k_timer *blinking_timer) {
     
     s_context.endtime = k_uptime_get();
 
-    // ADC_BLINK_COMPLETE(); 
+    ADC_BLINK_COMPLETE(); 
     
     k_event_post(&button_events, TIMER_COMPLETE_EVENT);
 }
@@ -414,7 +414,7 @@ static void reading_entry(void *o) {
     }
 
     // not sure if correct??????
-    gpio_pin_interrupt_configure_dt(&read_button, GPIO_INT_DISABLE);
+    // gpio_pin_interrupt_configure_dt(&read_button, GPIO_INT_DISABLE);
     
     (void)adc_sequence_init_dt(&adc_vadc, &sequence);
 }
@@ -450,16 +450,16 @@ static void reading_run(void *o) {
     // s_context.offtime = (MS_PER_HZ / s_context.freq) - s_context.ontime;
 
     float period = MS_PER_HZ / s_context.freq;
-    s_context.ontime = period * 0.1f;
-    s_context.offtime = period - s_context.ontime;
+    s_context.ontime = (int)(period * 0.1f);
+    s_context.offtime = (int)(period - s_context.ontime);
 
-    ADC_READ_COMPLETE(val_mv, s_context.freq);
     
     if (val_mv < MIN_V_MV || val_mv > MAX_V_MV) {
         smf_set_state(SMF_CTX(&s_context), &states[ERROR]);
         return;
     } else {
         smf_set_state(SMF_CTX(&s_context), &states[BLINKING]);
+        ADC_READ_COMPLETE(val_mv, s_context.freq);
     }
 
 }
@@ -489,6 +489,8 @@ static void blinking_entry(void *o) {
         LOG_ERR("Failed to set blinker LED.");
         smf_set_terminate(SMF_CTX(&s_context), err);
     }
+
+    gpio_pin_interrupt_configure_dt(&read_button, GPIO_INT_DISABLE);
     
     /* START TIMERS */
     k_timer_start(&led_on_timer,
@@ -521,6 +523,8 @@ static void blinking_exit(void *o) {
     k_timer_stop(&blinking_timer);
     k_timer_stop(&led_on_timer);
     k_timer_stop(&led_off_timer);
+
+    gpio_pin_interrupt_configure_dt(&read_button, GPIO_INT_EDGE_TO_ACTIVE);
 
     ADC_BLINK_COMPLETE();
     
