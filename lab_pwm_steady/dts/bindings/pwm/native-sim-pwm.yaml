@@ -1,0 +1,12 @@
+description: "Native simulator PWM controller"
+compatible: "zephyr,native-sim-pwm"
+# Cells: index, period, flags
+# For pwm_leds, #pwm-cells = <3>
+properties:
+  #pwm-cells:
+    type: array
+    description: PWM cells: <index period flags>
+    items:
+      - type: int
+      - type: int
+      - type: int
