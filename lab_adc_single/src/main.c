@@ -460,7 +460,7 @@ static void reading_run(void *o) {
         return;
     } else {
         smf_set_state(SMF_CTX(&s_context), &states[BLINKING]);
-    
+    }
 
 }
 
