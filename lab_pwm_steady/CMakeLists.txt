@@ -24,7 +24,9 @@ endif()
 # --------------------------------------------------
 
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})  # defines 'app' target
-project(adc_tests)
+project(pwm_tests)
+
+add_subdirectory(drivers)
 
 target_sources(app PRIVATE src/main.c)
 target_sources(app PRIVATE src/calc_cycles.c)
