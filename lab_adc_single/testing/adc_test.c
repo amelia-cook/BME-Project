@@ -434,6 +434,7 @@ static void set_differential_sine(const struct device *dev,
  *   cycles = freq_hz * window
  *   e.g. 10 Hz * (800 * 2500e-6 s) = 10 * 2.0 = 20 cycles
  */
+ 
 static void assert_cycles_computed(int expected_cycles, int tolerance)
 {
     /*

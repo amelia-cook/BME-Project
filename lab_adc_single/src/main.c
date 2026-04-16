@@ -6,6 +6,7 @@
 #include <zephyr/drivers/adc.h> // CONFIG_ADC=y
 // #include <zephyr/drivers/pwm.h> // CONFIG_PWM=y
 #include <zephyr/smf.h> // CONFIG_SMF=y
+
 #include "bme554_lib.h"
 
 LOG_MODULE_REGISTER(main, LOG_LEVEL_DBG);
@@ -403,7 +404,7 @@ static void sleep_run(void *o) {
 }
 
 static void reading_entry(void *o) {
-    // ADC_READ_TRIGGERED();
+    ADC_READ_TRIGGERED();
     int err = 0;
     
     /* RECONFIGURE BUTTONS TO DISABLE CALLBACKS */
@@ -460,12 +461,15 @@ static void reading_run(void *o) {
 
     
     if (val_mv < MIN_V_MV || val_mv > MAX_V_MV) {
+        ADC_READ_COMPLETE(s_context.millivolts, s_context.freq);
         smf_set_state(SMF_CTX(&s_context), &states[ERROR]);
         return;
     } else {
+        ADC_READ_COMPLETE(s_context.millivolts, s_context.freq);
         smf_set_state(SMF_CTX(&s_context), &states[BLINKING]);
         // ADC_READ_COMPLETE(val_mv, s_context.freq);
     }
+    
 
 }
 
@@ -483,7 +487,7 @@ static void reading_exit(void *o) {
         LOG_ERR("Cannot attach callback to sw3.");
         smf_set_terminate(SMF_CTX(&s_context), err);
     }
-    ADC_READ_COMPLETE(s_context.millivolts, s_context.freq);
+    // ADC_READ_COMPLETE(s_context.millivolts, s_context.freq);
 }
 
 static void blinking_entry(void *o) {
@@ -539,7 +543,7 @@ static void blinking_exit(void *o) {
 
 static void error_entry(void *o) {
     ERROR_STATE();
-    
+
     int err = 0;
     
     /* RECONFIGURE BUTTON TO DISABLE CALLBACK */
