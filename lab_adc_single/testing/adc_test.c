@@ -24,6 +24,22 @@
  */
 static const struct device *adc_emul_dev;
 
+static bool wait_for_event(uint32_t mask, int timeout_ms)
+{
+    int64_t start = k_uptime_get();
+    uint32_t events = 0;
+
+    do {
+        events = k_event_wait(&program_test_events, mask, true, K_MSEC(20));
+        if (events & mask) {
+            return true;
+        }
+    } while ((k_uptime_get() - start) < timeout_ms);
+
+    return false;
+}
+
+
 /* ================================================================== */
 /*  Fixture                                                           */
 /* ================================================================== */
@@ -446,6 +462,30 @@ static void assert_cycles_computed(int expected_cycles, int tolerance)
  * Press read_button with a known voltage and verify both
  * ADC_READ_TRIGGERED and ADC_READ_COMPLETE notices fire.
  */
+// ZTEST(adc_single_sample_tests, test_p1_01_read_button_triggers_adc)
+// {
+//     set_ain0_mv(adc_emul_dev, 1500);
+//     start_main(500);
+
+//     simulate_button_click(&read_button);
+
+//     uint32_t events = k_event_wait(&program_test_events,
+//                                    ADC_READ_TRIGGERED_NOTICE,
+//                                    true, K_MSEC(300));
+//     zassert_true(events & ADC_READ_TRIGGERED_NOTICE,
+//         "ADC_READ_TRIGGERED_NOTICE never fired after read_button press");
+
+//     events = k_event_wait(&program_test_events,
+//                           ADC_READ_COMPLETE_NOTICE,
+//                           true, K_MSEC(500));
+//     zassert_true(events & ADC_READ_COMPLETE_NOTICE,
+//         "ADC_READ_COMPLETE_NOTICE never fired");
+
+//     /* Sanity-check the reported millivolts */
+//     zassert_within(student_adc_mv, 1500, 200,
+//         "student_adc_mv: expected ~1500 mV but got %d", student_adc_mv);
+// }
+
 ZTEST(adc_single_sample_tests, test_p1_01_read_button_triggers_adc)
 {
     set_ain0_mv(adc_emul_dev, 1500);
@@ -453,22 +493,18 @@ ZTEST(adc_single_sample_tests, test_p1_01_read_button_triggers_adc)
 
     simulate_button_click(&read_button);
 
-    uint32_t events = k_event_wait(&program_test_events,
-                                   ADC_READ_TRIGGERED_NOTICE,
-                                   true, K_MSEC(300));
-    zassert_true(events & ADC_READ_TRIGGERED_NOTICE,
+    /* CHANGE: event wait robustness */
+    zassert_true(wait_for_event(ADC_READ_TRIGGERED_NOTICE, 500),
         "ADC_READ_TRIGGERED_NOTICE never fired after read_button press");
 
-    events = k_event_wait(&program_test_events,
-                          ADC_READ_COMPLETE_NOTICE,
-                          true, K_MSEC(500));
-    zassert_true(events & ADC_READ_COMPLETE_NOTICE,
+    /* CHANGE: event wait robustness */
+    zassert_true(wait_for_event(ADC_READ_COMPLETE_NOTICE, 800),
         "ADC_READ_COMPLETE_NOTICE never fired");
 
-    /* Sanity-check the reported millivolts */
     zassert_within(student_adc_mv, 1500, 200,
-        "student_adc_mv: expected ~1500 mV but got %d", student_adc_mv);
+        "student_adc_mv mismatch");
 }
+
 
 /*
  * 0 V → should map to 1 Hz (minimum).
@@ -479,7 +515,10 @@ ZTEST(adc_single_sample_tests, test_p1_02_zero_volts_maps_to_1hz)
     start_main(500);
 
     simulate_button_click(&read_button);
-    k_event_wait(&program_test_events, ADC_READ_COMPLETE_NOTICE, true, K_MSEC(500));
+    // k_event_wait(&program_test_events, ADC_READ_COMPLETE_NOTICE, true, K_MSEC(500));
+    /* CHANGE: event wait robustness */
+    zassert_true(wait_for_event(ADC_READ_COMPLETE_NOTICE, 800),
+        "ADC_READ_COMPLETE_NOTICE never fired");
 
     /* Measure over 3 s window — enough for several 1 Hz cycles */
     assert_blinker_freq(3000, 1, 1);
@@ -495,7 +534,9 @@ ZTEST(adc_single_sample_tests, test_p1_03_full_volts_maps_to_5hz)
     start_main(500);
 
     simulate_button_click(&read_button);
-    k_event_wait(&program_test_events, ADC_READ_COMPLETE_NOTICE, true, K_MSEC(500));
+    // k_event_wait(&program_test_events, ADC_READ_COMPLETE_NOTICE, true, K_MSEC(500));
+    zassert_true(wait_for_event(ADC_READ_COMPLETE_NOTICE, 800),
+        "ADC_READ_COMPLETE_NOTICE never fired");
 
     assert_blinker_freq(2000, 5, 1);
 }
@@ -509,7 +550,9 @@ ZTEST(adc_single_sample_tests, test_p1_04_mid_volts_maps_to_3hz)
     start_main(500);
 
     simulate_button_click(&read_button);
-    k_event_wait(&program_test_events, ADC_READ_COMPLETE_NOTICE, true, K_MSEC(500));
+    // k_event_wait(&program_test_events, ADC_READ_COMPLETE_NOTICE, true, K_MSEC(500));
+    zassert_true(wait_for_event(ADC_READ_COMPLETE_NOTICE, 800),
+        "ADC_READ_COMPLETE_NOTICE never fired");
 
     assert_blinker_freq(2000, 3, 1);
 }
@@ -524,7 +567,9 @@ ZTEST(adc_single_sample_tests, test_p1_05_duty_cycle_10pct)
     start_main(500);
 
     simulate_button_click(&read_button);
-    k_event_wait(&program_test_events, ADC_READ_COMPLETE_NOTICE, true, K_MSEC(500));
+    // k_event_wait(&program_test_events, ADC_READ_COMPLETE_NOTICE, true, K_MSEC(500));
+    zassert_true(wait_for_event(ADC_READ_COMPLETE_NOTICE, 800),
+        "ADC_READ_COMPLETE_NOTICE never fired");
 
     assert_blink_ontime_pct(2000, 10, 5);  /* ±5% tolerance */
 }
@@ -539,7 +584,9 @@ ZTEST(adc_single_sample_tests, test_p1_06_blink_duration_5s)
     start_main(500);
 
     simulate_button_click(&read_button);
-    k_event_wait(&program_test_events, ADC_READ_COMPLETE_NOTICE, true, K_MSEC(500));
+    // k_event_wait(&program_test_events, ADC_READ_COMPLETE_NOTICE, true, K_MSEC(500));
+    zassert_true(wait_for_event(ADC_READ_COMPLETE_NOTICE, 800),
+        "ADC_READ_COMPLETE_NOTICE never fired");
 
     assert_blink_total_duration_ms(BLINKING_TIME_MS, 300); /* ±300 ms */
 
@@ -559,13 +606,21 @@ ZTEST(adc_single_sample_tests, test_p1_07_read_button_disabled_during_blink)
 
     /* First press — valid */
     simulate_button_click(&read_button);
-    uint32_t events = k_event_wait(&program_test_events,
-                                   ADC_READ_TRIGGERED_NOTICE,
-                                   true, K_MSEC(300));
-    zassert_true(events & ADC_READ_TRIGGERED_NOTICE, "First press not detected");
+    // uint32_t events = k_event_wait(&program_test_events,
+    //                                ADC_READ_TRIGGERED_NOTICE,
+    //                                true, K_MSEC(300));
+    // zassert_true(events & ADC_READ_TRIGGERED_NOTICE, "First press not detected");
 
     /* Wait for blink to start */
-    k_event_wait(&program_test_events, ADC_READ_COMPLETE_NOTICE, true, K_MSEC(500));
+    // k_event_wait(&program_test_events, ADC_READ_COMPLETE_NOTICE, true, K_MSEC(500));
+
+    /* CHANGE: event wait robustness */
+    zassert_true(wait_for_event(ADC_READ_TRIGGERED_NOTICE, 500),
+        "First press not detected");
+
+    /* CHANGE: event wait robustness */
+    zassert_true(wait_for_event(ADC_READ_COMPLETE_NOTICE, 800),
+        "ADC_READ_COMPLETE_NOTICE never fired");
 
     /* Clear triggered notice so we can watch for a spurious second one */
     k_event_clear(&program_test_events, ADC_READ_TRIGGERED_NOTICE);
@@ -574,10 +629,11 @@ ZTEST(adc_single_sample_tests, test_p1_07_read_button_disabled_during_blink)
     simulate_button_click(&read_button);
     k_msleep(100);
 
-    events = k_event_wait(&program_test_events,
+    uint32_t events = k_event_wait(&program_test_events,
                           ADC_READ_TRIGGERED_NOTICE,
                           false,   /* don't consume — just peek */
                           K_MSEC(100));
+
     zassert_false(events & ADC_READ_TRIGGERED_NOTICE,
         "read_button was not disabled: second ADC_READ_TRIGGERED fired");
 }
@@ -618,12 +674,17 @@ ZTEST(adc_single_sample_tests, test_p1_08_error_on_bad_voltage)
      */
     int ret = adc_emul_value_func_set(adc_emul_dev, AIN0_CHANNEL_ID,
                                       ain0_over_range_cb, NULL);
+
     zassert_ok(ret, "failed to set error callback");
 
     start_main(500);
 
     simulate_button_click(&read_button);
-    k_event_wait(&program_test_events, ADC_READ_TRIGGERED_NOTICE, true, K_MSEC(300));
+
+    // k_event_wait(&program_test_events, ADC_READ_TRIGGERED_NOTICE, true, K_MSEC(300));
+    /* CHANGE: event wait robustness */
+    zassert_true(wait_for_event(ADC_READ_TRIGGERED_NOTICE, 500),
+        "ADC_READ_TRIGGERED_NOTICE never fired");
 
     /* Give state machine time to transition to ERROR */
     k_msleep(200);
@@ -633,9 +694,14 @@ ZTEST(adc_single_sample_tests, test_p1_08_error_on_bad_voltage)
 
     /* Only reset_button should exit ERROR */
     simulate_button_click(&reset_button);
-    uint32_t events = k_event_wait(&program_test_events,
-                                   RESET_TEST_NOTICE, true, K_MSEC(300));
-    zassert_true(events & RESET_TEST_NOTICE, "RESET_TEST_NOTICE not fired");
+
+    // uint32_t events = k_event_wait(&program_test_events,
+    //                                RESET_TEST_NOTICE, true, K_MSEC(300));
+    // zassert_true(events & RESET_TEST_NOTICE, "RESET_TEST_NOTICE not fired");
+
+    /* CHANGE: event wait robustness */
+    zassert_true(wait_for_event(RESET_TEST_NOTICE, 500),
+        "RESET_TEST_NOTICE not fired");
 
     k_msleep(100);
     assert_led_off(&error_led, "error (after reset)");

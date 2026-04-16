@@ -174,5 +174,6 @@ static void assert_blink_total_duration_ms(int expected_ms, int tolerance_ms);
  * Waits for ADC_CYCLES_COMPUTED_NOTICE then checks student_calc_cycles_result.
  */
 static void assert_cycles_computed(int expected_cycles, int tolerance);
+static bool wait_for_event(uint32_t mask, int timeout_ms);
 
 #endif /* ADC_TEST_H */
