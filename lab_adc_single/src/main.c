@@ -199,7 +199,7 @@ void blinking_interrupt_handler(struct k_timer *blinking_timer) {
     
     s_context.endtime = k_uptime_get();
 
-    ADC_BLINK_COMPLETE(); 
+    // ADC_BLINK_COMPLETE(); 
     
     k_event_post(&button_events, TIMER_COMPLETE_EVENT);
 }
@@ -527,6 +527,8 @@ static void blinking_run(void *o) {
         LOG_INF("Reset button pressed");
         smf_set_state(SMF_CTX(&s_context), &states[RESET]);
     }
+
+    ADC_BLINK_COMPLETE();
 }
 
 static void blinking_exit(void *o) {
@@ -536,7 +538,6 @@ static void blinking_exit(void *o) {
 
     gpio_pin_interrupt_configure_dt(&read_button, GPIO_INT_EDGE_TO_ACTIVE);
 
-    ADC_BLINK_COMPLETE();
     
     LOG_INF("Blinking timer off, ran for %lld ms", s_context.endtime - s_context.starttime);
 }

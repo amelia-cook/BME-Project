@@ -68,13 +68,16 @@ extern struct k_event program_test_events;
 
 #define RESET_PRESSED()                                             \
 {                                                                   \
-    k_event_post(&program_test_events, RESET_BTN_TEST_NOTICE);      \
+    do {                                                            \
+        k_event_post(&program_test_events, RESET_BTN_TEST_NOTICE);      \
+    } while (0);                                                    \
 }
 
-#define SLEEP_PRESSED()                                             \
-{                                                                   \
-    k_event_post(&program_test_events, SLEEP_BTN_TEST_NOTICE);      \
-}
+#define SLEEP_PRESSED() do { \
+    do {    \
+        k_event_post(&program_test_events, SLEEP_BTN_TEST_NOTICE); \
+    } while (0);
+} while (0)
 
 #define ERROR_STATE()                                               \
 {                                                                   \
@@ -103,7 +106,9 @@ extern struct k_event program_test_events;
 /* ------------------------------------------------------------------ */
 #define ADC_READ_TRIGGERED()                                            \
 {                                                                       \
-    k_event_post(&program_test_events, ADC_READ_TRIGGERED_NOTICE);      \
+    do {                                                            \
+        k_event_post(&program_test_events, ADC_READ_TRIGGERED_NOTICE);      \
+    } while (0);                                                    \
 }
 
 #define ADC_READ_COMPLETE(mv, freq)                                     \
@@ -117,7 +122,10 @@ extern struct k_event program_test_events;
 
 #define ADC_BLINK_COMPLETE()                                            \
 {                                                                       \
-    k_event_post(&program_test_events, ADC_BLINK_DONE_NOTICE);          \
+    do {                                                            \
+        k_event_post(&program_test_events, ADC_BLINK_DONE_NOTICE);          \
+    } while (0);                                                    \
+
 }
 
 /* ------------------------------------------------------------------ */
