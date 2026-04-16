@@ -196,7 +196,7 @@ void blinking_interrupt_handler(struct k_timer *blinking_timer) {
     
     s_context.endtime = k_uptime_get();
 
-    ADC_BLINK_COMPLETE(); 
+    // ADC_BLINK_COMPLETE(); 
     
     k_event_post(&button_events, TIMER_COMPLETE_EVENT);
 }
@@ -362,6 +362,7 @@ static void idle_run(void *o) {
     uint32_t events = k_event_wait(&button_events, READ_EVENT | SLEEP_EVENT | RESET_EVENT, true, K_FOREVER);
     if (events & READ_EVENT) {
         LOG_INF("Read button pressed");
+        ADC_READ_TRIGGERED();
         smf_set_state(SMF_CTX(&s_context), &states[READING]);
     }
     if (events & SLEEP_EVENT) {
@@ -398,7 +399,7 @@ static void sleep_run(void *o) {
 }
 
 static void reading_entry(void *o) {
-    ADC_READ_TRIGGERED();
+    // ADC_READ_TRIGGERED();
     int err = 0;
     
     /* RECONFIGURE BUTTONS TO DISABLE CALLBACKS */
@@ -459,7 +460,7 @@ static void reading_run(void *o) {
         return;
     } else {
         smf_set_state(SMF_CTX(&s_context), &states[BLINKING]);
-        ADC_READ_COMPLETE(val_mv, s_context.freq);
+        // ADC_READ_COMPLETE(val_mv, s_context.freq);
     }
 
 }
@@ -478,6 +479,7 @@ static void reading_exit(void *o) {
         LOG_ERR("Cannot attach callback to sw3.");
         smf_set_terminate(SMF_CTX(&s_context), err);
     }
+    ADC_READ_COMPLETE(s_context.millivolts, s_context.freq);
 }
 
 static void blinking_entry(void *o) {
