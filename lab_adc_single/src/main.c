@@ -161,10 +161,12 @@ void read_button_callback(const struct device *dev, struct gpio_callback *cb, ui
 }
 
 void sleep_button_callback(const struct device *dev, struct gpio_callback *cb, uint32_t pins) {
+    SLEEP_PRESSED();
     k_event_post(&button_events, SLEEP_EVENT);
 }
 
 void reset_button_callback(const struct device *dev, struct gpio_callback *cb, uint32_t pins) {
+    RESET_PRESSED(); 
     k_event_post(&button_events, RESET_EVENT);
 }
 
@@ -387,6 +389,8 @@ static void idle_exit(void *o) {
 }
 
 static void sleep_run(void *o) {
+    SLEEP_STATE(); 
+
     uint32_t events = k_event_wait(&button_events, SLEEP_EVENT | RESET_EVENT, true, K_FOREVER);
     if (events & SLEEP_EVENT) {
         LOG_INF("Sleep button pressed");
@@ -534,6 +538,8 @@ static void blinking_exit(void *o) {
 }
 
 static void error_entry(void *o) {
+    ERROR_STATE();
+    
     int err = 0;
     
     /* RECONFIGURE BUTTON TO DISABLE CALLBACK */
