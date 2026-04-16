@@ -194,12 +194,12 @@ void heartbeat_thread(void *, void *, void *) {
 
 void blinking_interrupt_handler(struct k_timer *blinking_timer) {
     /* STOP TIMERS */
-    k_timer_stop(&led_on_timer);
-    k_timer_stop(&led_off_timer);
+    // k_timer_stop(&led_on_timer);
+    // k_timer_stop(&led_off_timer);
     
     s_context.endtime = k_uptime_get();
 
-    // ADC_BLINK_COMPLETE(); 
+    ADC_BLINK_COMPLETE(); 
     
     k_event_post(&button_events, TIMER_COMPLETE_EVENT);
 }
@@ -365,7 +365,7 @@ static void idle_run(void *o) {
     uint32_t events = k_event_wait(&button_events, READ_EVENT | SLEEP_EVENT | RESET_EVENT, true, K_FOREVER);
     if (events & READ_EVENT) {
         LOG_INF("Read button pressed");
-        ADC_READ_TRIGGERED();
+        // ADC_READ_TRIGGERED();
         smf_set_state(SMF_CTX(&s_context), &states[READING]);
     }
     if (events & SLEEP_EVENT) {
