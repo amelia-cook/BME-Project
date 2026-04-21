@@ -353,8 +353,6 @@ ZTEST(state_machine_tests, test_07_sleep_sleep)
                           K_MSEC(200));
     (void) events;
     
-    // k_msleep(1000);
-    
     assert_led_blink_freq(&heartbeat_led, 2000, 1, 1, "heartbeat");
     assert_led_blink_freq(&iv_pump_led, 2000, 2, 1, "iv_pump");
     assert_led_blink_freq(&buzzer_led, 2000, 2, 1, "buzzer");
@@ -377,6 +375,8 @@ ZTEST(state_machine_tests, test_08_freq_up_sleep_sleep)
                           SLEEP_TEST_NOTICE,
                           true,
                           K_MSEC(200));
+    
+    k_msleep(100);
     
     simulate_button_click(&sleep_button);
     events = k_event_wait(&program_test_events,
@@ -409,6 +409,8 @@ ZTEST(state_machine_tests, test_09_freq_up_sleep_reset)
                           SLEEP_TEST_NOTICE,
                           true,
                           K_MSEC(200));
+    
+    k_msleep(100);
     
     simulate_button_click(&reset_button);
     events = k_event_wait(&program_test_events,
@@ -587,8 +589,9 @@ ZTEST(state_machine_tests, test_14_sleep_reset)
                                    SLEEP_TEST_NOTICE,
                                    true,
                                    K_MSEC(200));
-    (void) events;
-
+    
+    k_msleep(100);
+    
     simulate_button_click(&reset_button);
     events = k_event_wait(&program_test_events,
                           RESET_TEST_NOTICE,
@@ -662,12 +665,13 @@ ZTEST(state_machine_tests, test_18_button_wakes_blocking_main)
     k_msleep(500);
 
     simulate_button_click(&freq_up_button);
-
     uint32_t events = k_event_wait(&program_test_events,
                                    FREQ_UP_TEST_NOTICE,
                                    true,
                                    K_MSEC(300));
-
+    
+    k_msleep(100);
+    
     zassert_true(events & FREQ_UP_TEST_NOTICE,
         "Button press did not wake blocking main thread");
 
