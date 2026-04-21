@@ -104,6 +104,7 @@ extern struct k_event program_test_events;
 #define ADC_READ_TRIGGERED()                                            \
 {                                                                       \
     k_event_post(&program_test_events, ADC_READ_TRIGGERED_NOTICE);      \
+    printk(">>> program_test_events bits after post: POSTED ADC_READ_TRIGGERED \n"); \
 }
 
 #define ADC_READ_COMPLETE(mv, freq)                                     \

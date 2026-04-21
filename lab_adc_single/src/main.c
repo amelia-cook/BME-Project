@@ -158,6 +158,7 @@ int main(void)
 }
 
 void read_button_callback(const struct device *dev, struct gpio_callback *cb, uint32_t pins) {
+    printk(">>> [callback] &program_test_events = %p\n", &program_test_events);
     ADC_READ_TRIGGERED();
     k_event_post(&button_events, READ_EVENT);
 }
@@ -250,6 +251,7 @@ void led_on_stop_handler(struct k_timer *led_on_timer) {
 }
 
 static void init(void *o) {
+    printk(">>> [student] &program_test_events = %p\n", &program_test_events);
     int err = 0;
     
     /* CHECK INTERFACE READY */
@@ -462,13 +464,21 @@ static void reading_run(void *o) {
 
     
     if (val_mv < MIN_V_MV || val_mv > MAX_V_MV) {
+        printk(">>> About to post ADC_READ_COMPLETE (mv=%d freq=%f)\n", s_context.millivolts, (double)s_context.freq);
         ADC_READ_COMPLETE(s_context.millivolts, s_context.freq);
+        printk(">>> program_test_events bits after READ_COMPLETE:");
         k_yield();
+        printk(">>> After k_yield, continuing to smf_set_state\n");
+
         smf_set_state(SMF_CTX(&s_context), &states[ERROR]);
         return;
     } else {
+        printk(">>> About to post ADC_READ_COMPLETE (mv=%d freq=%f)\n", s_context.millivolts, (double)s_context.freq);
         ADC_READ_COMPLETE(s_context.millivolts, s_context.freq);
-        k_yield(); // not sure if correct
+        printk(">>> program_test_events bits after READ_COMPLETE:");
+        k_yield();
+        printk(">>> After k_yield, continuing to smf_set_state\n");
+
         smf_set_state(SMF_CTX(&s_context), &states[BLINKING]);
         // ADC_READ_COMPLETE(val_mv, s_context.freq);
     }
