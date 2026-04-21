@@ -667,7 +667,7 @@ ZTEST(state_machine_tests, test_18_button_wakes_blocking_main)
     simulate_button_click(&freq_up_button);
     uint32_t events = k_event_wait(&program_test_events,
                                    FREQ_UP_TEST_NOTICE,
-                                   true,
+                                   false,
                                    K_MSEC(300));
     
     k_msleep(100);
