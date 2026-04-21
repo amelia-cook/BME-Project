@@ -344,6 +344,8 @@ ZTEST(state_machine_tests, test_07_sleep_sleep)
                                    true,
                                    K_MSEC(200));
     
+    k_msleep(1000);
+    
     simulate_button_click(&sleep_button);
     events = k_event_wait(&program_test_events,
                           SLEEP_BTN_TEST_NOTICE,
@@ -351,7 +353,7 @@ ZTEST(state_machine_tests, test_07_sleep_sleep)
                           K_MSEC(200));
     (void) events;
     
-    k_msleep(100);
+    k_msleep(1000);
     
     assert_led_blink_freq(&heartbeat_led, 2000, 1, 1, "heartbeat");
     assert_led_blink_freq(&iv_pump_led, 2000, 2, 1, "iv_pump");
