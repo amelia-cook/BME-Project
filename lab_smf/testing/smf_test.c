@@ -142,6 +142,13 @@ static void assert_led_on(const struct gpio_dt_spec *led, const char *led_name)
         led_name, led->pin);
 }
 
+/* Return bool LED is ON */
+static bool is_led_on(const struct gpio_dt_spec *led)
+{
+    int val = gpio_emul_output_get(led->port, led->pin);
+    return (val == 1);
+}
+
 /* Assert heartbeat duty cycle */
 static void assert_led_duty_cycle_25(const struct gpio_dt_spec *led,
                                      const char *led_name)
@@ -149,12 +156,6 @@ static void assert_led_duty_cycle_25(const struct gpio_dt_spec *led,
     const int sample_cycles = 4;
     const float tolerance = 0.10f;  // ±10%
 
-    /* ACTIVE = LOW */
-    auto is_led_on = [](int val) {
-        return (val == 0);
-    };
-
-    int last_raw = gpio_emul_output_get(led->port, led->pin);
     bool last_state = is_led_on(last_raw);
 
     /* Sync to first edge */
@@ -214,7 +215,7 @@ static void assert_led_duty_cycle_25(const struct gpio_dt_spec *led,
         duty > (expected - tolerance) &&
         duty < (expected + tolerance),
         "LED %s: duty cycle incorrect (got %.2f, expected ~0.25)",
-        led_name, duty
+        led_name, (double)duty
     );
 }
 

@@ -138,12 +138,12 @@ void sleep_button_callback(const struct device *dev, struct gpio_callback *cb, u
 }
 
 void freq_up_button_callback(const struct device *dev, struct gpio_callback *cb, uint32_t pins) {
-    FREQUENCY_UP_PRESSED(action_led_hz);
+    FREQUENCY_UP_PRESSED(s_context.action_led_hz);
     k_event_post(&button_events, FREQ_UP_EVENT);
 }
 
 void freq_down_button_callback(const struct device *dev, struct gpio_callback *cb, uint32_t pins) {
-    FREQUENCY_DOWN_PRESSED(action_led_hz);
+    FREQUENCY_DOWN_PRESSED(s_context.action_led_hz);
     k_event_post(&button_events, FREQ_DOWN_EVENT);
 }
 
