@@ -158,6 +158,7 @@ int main(void)
 }
 
 void read_button_callback(const struct device *dev, struct gpio_callback *cb, uint32_t pins) {
+    ADC_READ_TRIGGERED();
     k_event_post(&button_events, READ_EVENT);
 }
 
@@ -404,7 +405,7 @@ static void sleep_run(void *o) {
 }
 
 static void reading_entry(void *o) {
-    ADC_READ_TRIGGERED();
+    // ADC_READ_TRIGGERED();
     int err = 0;
     
     /* RECONFIGURE BUTTONS TO DISABLE CALLBACKS */
@@ -462,10 +463,12 @@ static void reading_run(void *o) {
     
     if (val_mv < MIN_V_MV || val_mv > MAX_V_MV) {
         ADC_READ_COMPLETE(s_context.millivolts, s_context.freq);
+        k_yield();
         smf_set_state(SMF_CTX(&s_context), &states[ERROR]);
         return;
     } else {
         ADC_READ_COMPLETE(s_context.millivolts, s_context.freq);
+        k_yield(); // not sure if correct
         smf_set_state(SMF_CTX(&s_context), &states[BLINKING]);
         // ADC_READ_COMPLETE(val_mv, s_context.freq);
     }
