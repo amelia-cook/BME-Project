@@ -232,14 +232,21 @@ static int ain0_const_cb(const struct device *dev,
 
 static void set_ain0_mv(const struct device *dev, int millivolts)
 {
-    if (millivolts < 0)        { millivolts = 0; }
-    if (millivolts > MAX_V_MV) { millivolts = MAX_V_MV; }
+    #define EFFECTIVE_FS_MV  900
+
+    if (millivolts < 0)             { millivolts = 0; }
+    if (millivolts > EFFECTIVE_FS_MV){ millivolts = EFFECTIVE_FS_MV; }
 
     // OLD (assumes GAIN_1):
     // g_ain0_raw_value = (uint32_t)(((uint64_t)millivolts * 4095U) / MAX_V_MV);
 
     // NEW (accounts for ADC_GAIN_1_5 in student's channel config):
-    g_ain0_raw_value = (uint32_t)(((uint64_t)millivolts * 4095U * 3U) / (MAX_V_MV * 2U));
+    // g_ain0_raw_value = (uint32_t)(((uint64_t)millivolts * 4095U * 3U) / (MAX_V_MV * 2U));
+
+    // int ret = adc_emul_value_func_set(dev, AIN0_CHANNEL_ID, ain0_const_cb, NULL);
+    // zassert_ok(ret, "set_ain0_mv: adc_emul_value_func_set failed (%d)", ret);
+
+    g_ain0_raw_value = (uint32_t)(((uint64_t)millivolts * 4095U) / EFFECTIVE_FS_MV);
 
     int ret = adc_emul_value_func_set(dev, AIN0_CHANNEL_ID, ain0_const_cb, NULL);
     zassert_ok(ret, "set_ain0_mv: adc_emul_value_func_set failed (%d)", ret);
@@ -530,7 +537,7 @@ static void assert_cycles_computed(int expected_cycles, int tolerance)
 
 ZTEST(adc_single_sample_tests, test_p1_01_read_button_triggers_adc)
 {
-    set_ain0_mv(adc_emul_dev, 1500);
+    set_ain0_mv(adc_emul_dev, 700);
     // start_main(500);
 
     k_event_clear(&program_test_events, ADC_READ_TRIGGERED_NOTICE | ADC_READ_COMPLETE_NOTICE);
@@ -571,8 +578,7 @@ ZTEST(adc_single_sample_tests, test_p1_01_read_button_triggers_adc)
     //     "ADC_READ_COMPLETE_NOTICE never fired");
     // k_msleep(1000);
 
-    zassert_within(student_adc_mv, 1500, 200,
-        "student_adc_mv mismatch");
+    zassert_within(student_adc_mv, 700, 200, "student_adc_mv mismatch");
 }
 
 
