@@ -466,7 +466,8 @@ static void reading_run(void *o) {
     if (val_mv < MIN_V_MV || val_mv > MAX_V_MV) {
         printk(">>> About to post ADC_READ_COMPLETE (mv=%d freq=%f)\n", s_context.millivolts, (double)s_context.freq);
         ADC_READ_COMPLETE(s_context.millivolts, s_context.freq);
-        printk(">>> program_test_events bits after READ_COMPLETE:");
+        // printk(">>> program_test_events bits after READ_COMPLETE:");
+        printk(">>> program_test_events bits after READ_COMPLETE: 0x%08x\n", program_test_events.events);
         k_yield();
         printk(">>> After k_yield, continuing to smf_set_state\n");
 
