@@ -647,7 +647,9 @@ ZTEST(state_machine_tests, test_15_freq_up_sleep_buttons_disabled)
 /* check 25% duty cycle for heartbeat */
 ZTEST(state_machine_tests, test_17_heartbeat_duty_cycle)
 {
-    start_main(1500);
+    start_main(1000);
+    
+    k_msleep(1000);
     
     assert_led_duty_cycle_25(&heartbeat_led, "heartbeat");
     assert_led_blink_freq(&heartbeat_led, 4000, 1, 1, "heartbeat");
