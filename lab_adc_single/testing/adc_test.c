@@ -494,10 +494,9 @@ static void assert_cycles_computed(int expected_cycles, int tolerance)
 // }
 
 ZTEST(adc_single_sample_tests, test_p1_00_read_button_triggers_adc){
-    start_main(500);
-    k_msleep(1000);
-
     set_ain0_mv(adc_emul_dev, 1500);
+    // start_main(500);
+    k_msleep(1000);
     simulate_button_click(&read_button);
     zassert_true(wait_for_event(ADC_READ_TRIGGERED_NOTICE, 500),
         "ADC_READ_TRIGGERED_NOTICE never fired after read_button press");
