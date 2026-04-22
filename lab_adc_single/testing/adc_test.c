@@ -526,13 +526,26 @@ ZTEST(adc_single_sample_tests, test_p1_01_read_button_triggers_adc)
     printk("***** after simulate button click read button*****\n");
     // k_msleep(1000);
 
+    // k_event_wait()
+    uint32_t events = k_event_wait(&program_test_events,
+                                   ADC_READ_TRIGGERED_NOTICE | ADC_READ_COMPLETE_NOTICE,
+                                   false,   /* don't reset — we'll check both bits */
+                                   K_MSEC(1000));
+
+    zassert_true(events & ADC_READ_TRIGGERED_NOTICE,
+        "ADC_READ_TRIGGERED_NOTICE never fired (events=0x%x)", events);
+
+    zassert_true(events & ADC_READ_COMPLETE_NOTICE,
+        "ADC_READ_COMPLETE_NOTICE never fired (events=0x%x)", events);
+
+
     /* CHANGE: event wait robustness */
-    zassert_true(wait_for_event(ADC_READ_TRIGGERED_NOTICE, 1000),
-        "ADC_READ_TRIGGERED_NOTICE never fired after read_button press");
-    // k_msleep(1000);
-    /* CHANGE: event wait robustness */
-    zassert_true(wait_for_event(ADC_READ_COMPLETE_NOTICE, 1000),
-        "ADC_READ_COMPLETE_NOTICE never fired");
+    // zassert_true(wait_for_event(ADC_READ_TRIGGERED_NOTICE, 1000),
+    //     "ADC_READ_TRIGGERED_NOTICE never fired after read_button press");
+    // // k_msleep(1000);
+    // /* CHANGE: event wait robustness */
+    // zassert_true(wait_for_event(ADC_READ_COMPLETE_NOTICE, 1000),
+    //     "ADC_READ_COMPLETE_NOTICE never fired");
     // k_msleep(1000);
     zassert_within(student_adc_mv, 1500, 200,
         "student_adc_mv mismatch");
