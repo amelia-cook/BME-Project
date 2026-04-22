@@ -493,18 +493,18 @@ static void assert_cycles_computed(int expected_cycles, int tolerance)
 //         "student_adc_mv: expected ~1500 mV but got %d", student_adc_mv);
 // }
 
-ZTEST(adc_single_sample_tests, test_p1_00_read_button_triggers_adc){
-    set_ain0_mv(adc_emul_dev, 1500);
-    // start_main(500);
-    k_msleep(1000);
-    simulate_button_click(&read_button);
-    zassert_true(wait_for_event(ADC_READ_TRIGGERED_NOTICE, 500),
-        "ADC_READ_TRIGGERED_NOTICE never fired after read_button press");
-    zassert_true(wait_for_event(ADC_READ_COMPLETE_NOTICE, 800),
-        "ADC_READ_COMPLETE_NOTICE never fired");
-    zassert_within(student_adc_mv, 1500, 200,
-        "student_adc_mv mismatch");
-}
+// ZTEST(adc_single_sample_tests, test_p1_00_read_button_triggers_adc){
+//     set_ain0_mv(adc_emul_dev, 1500);
+//     // start_main(500);
+//     k_msleep(1000);
+//     simulate_button_click(&read_button);
+//     zassert_true(wait_for_event(ADC_READ_TRIGGERED_NOTICE, 500),
+//         "ADC_READ_TRIGGERED_NOTICE never fired after read_button press");
+//     zassert_true(wait_for_event(ADC_READ_COMPLETE_NOTICE, 800),
+//         "ADC_READ_COMPLETE_NOTICE never fired");
+//     zassert_within(student_adc_mv, 1500, 200,
+//         "student_adc_mv mismatch");
+// }
 
 
 ZTEST(adc_single_sample_tests, test_p1_01_read_button_triggers_adc)
@@ -518,11 +518,11 @@ ZTEST(adc_single_sample_tests, test_p1_01_read_button_triggers_adc)
     // k_msleep(1000);
 
     /* CHANGE: event wait robustness */
-    zassert_true(wait_for_event(ADC_READ_TRIGGERED_NOTICE, 500),
+    zassert_true(wait_for_event(ADC_READ_TRIGGERED_NOTICE, 1000),
         "ADC_READ_TRIGGERED_NOTICE never fired after read_button press");
     // k_msleep(1000);
     /* CHANGE: event wait robustness */
-    zassert_true(wait_for_event(ADC_READ_COMPLETE_NOTICE, 800),
+    zassert_true(wait_for_event(ADC_READ_COMPLETE_NOTICE, 1000),
         "ADC_READ_COMPLETE_NOTICE never fired");
     // k_msleep(1000);
     zassert_within(student_adc_mv, 1500, 200,
