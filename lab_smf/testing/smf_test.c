@@ -156,13 +156,12 @@ static void assert_led_duty_cycle_25(const struct gpio_dt_spec *led,
     const int sample_cycles = 4;
     const float tolerance = 0.10f;  // ±10%
 
-    bool last_state = is_led_on(last_raw);
+    bool last_state = is_led_on(led);
 
     /* Sync to first edge */
     while (1) {
         k_msleep(5);
-        int cur_raw = gpio_emul_output_get(led->port, led->pin);
-        bool cur_state = is_led_on(cur_raw);
+        bool cur_state = is_led_on(led);
 
         if (cur_state != last_state) {
             last_state = cur_state;
@@ -182,8 +181,7 @@ static void assert_led_duty_cycle_25(const struct gpio_dt_spec *led,
         while (1) {
             k_msleep(5);
 
-            int cur_raw = gpio_emul_output_get(led->port, led->pin);
-            bool cur_state = is_led_on(cur_raw);
+            bool cur_state = is_led_on(led);
 
             if (cur_state != last_state) {
                 int64_t now = k_uptime_get();
@@ -346,6 +344,8 @@ ZTEST(state_machine_tests, test_07_sleep_sleep)
                                    true,
                                    K_MSEC(200));
     
+    k_msleep(100);
+    
     simulate_button_click(&sleep_button);
     events = k_event_wait(&program_test_events,
                           SLEEP_BTN_TEST_NOTICE,
@@ -376,12 +376,16 @@ ZTEST(state_machine_tests, test_08_freq_up_sleep_sleep)
                           true,
                           K_MSEC(200));
     
+    k_msleep(100);
+    
     simulate_button_click(&sleep_button);
     events = k_event_wait(&program_test_events,
                           SLEEP_BTN_TEST_NOTICE,
                           true,
                           K_MSEC(200));
     (void) events;
+    
+    k_msleep(100);
     
     assert_led_blink_freq(&heartbeat_led, 2000, 1, 1, "heartbeat");
     assert_led_blink_freq(&iv_pump_led, 2000, 3, 1, "iv_pump");
@@ -405,6 +409,8 @@ ZTEST(state_machine_tests, test_09_freq_up_sleep_reset)
                           SLEEP_TEST_NOTICE,
                           true,
                           K_MSEC(200));
+    
+    k_msleep(100);
     
     simulate_button_click(&reset_button);
     events = k_event_wait(&program_test_events,
@@ -583,8 +589,9 @@ ZTEST(state_machine_tests, test_14_sleep_reset)
                                    SLEEP_TEST_NOTICE,
                                    true,
                                    K_MSEC(200));
-    (void) events;
-
+    
+    k_msleep(100);
+    
     simulate_button_click(&reset_button);
     events = k_event_wait(&program_test_events,
                           RESET_TEST_NOTICE,
@@ -658,12 +665,13 @@ ZTEST(state_machine_tests, test_18_button_wakes_blocking_main)
     k_msleep(500);
 
     simulate_button_click(&freq_up_button);
-
     uint32_t events = k_event_wait(&program_test_events,
                                    FREQ_UP_TEST_NOTICE,
-                                   true,
+                                   false,
                                    K_MSEC(300));
-
+    
+    k_msleep(100);
+    
     zassert_true(events & FREQ_UP_TEST_NOTICE,
         "Button press did not wake blocking main thread");
 
@@ -723,152 +731,6 @@ ZTEST(state_machine_tests, test_23_multiple_events_back_to_back)
     assert_led_blink_freq(&buzzer_led, 2000, 3, 1, "buzzer");
     assert_led_off(&error_led, "error");
 }
-
-/* ================================================================== */
-/*  Double-Press Button Tests (unimplemented within code)             */
-/* ================================================================== */
-
-// /* double press freq up -> action LEDs +2 Hz */
-// ZTEST(state_machine_tests, test_20_double_press_freq_up)
-// {
-//     start_main(1000);
-
-//     // Simulate two presses within 500 ms
-//     simulate_button_click(&freq_up_button);
-//     k_msleep(400);
-//     simulate_button_click(&freq_up_button);
-
-//     uint32_t events = k_event_wait(&program_test_events,
-//                                    FREQ_UP_TEST_NOTICE,
-//                                    true,
-//                                    K_MSEC(200));
-//     (void)events;
-
-//     // Heartbeat LED still at 1 Hz, 25% duty
-//     assert_led_duty_cycle_25(&heartbeat_led, "heartbeat");
-
-//     // Action LEDs should increase frequency by 2 Hz (default 2 -> 4 Hz)
-//     assert_led_blink_freq(&iv_pump_led, 2000, 4, 1, "iv_pump");
-//     assert_led_blink_freq(&buzzer_led, 2000, 4, 1, "buzzer");
-
-//     // Error LED should be off
-//     assert_led_off(&error_led, "error");
-// }
-
-// /* double press freq down -> action LEDs decrease by 2 Hz */
-// ZTEST(state_machine_tests, test_21_double_press_freq_down)
-// {
-//     start_main(1000);
-
-//     // Increase action LEDs first to allow decrement (2 -> 3 Hz)
-//     simulate_button_click(&freq_up_button);
-//     k_event_wait(&program_test_events,
-//                  FREQ_UP_TEST_NOTICE,
-//                  true,
-//                  K_MSEC(200));
-
-//     // Simulate two freq_down_button presses within 500 ms
-//     simulate_button_click(&freq_down_button);
-//     k_msleep(400);
-//     simulate_button_click(&freq_down_button);
-
-//     // Wait for event
-//     uint32_t events = k_event_wait(&program_test_events,
-//                                    FREQ_DOWN_TEST_NOTICE,
-//                                    true,
-//                                    K_MSEC(200));
-//     (void)events;
-
-//     // Heartbeat LED continues to blink at 1 Hz, 25% duty
-//     assert_led_duty_cycle_25(&heartbeat_led, "heartbeat");
-
-//     // Action LEDs should now be 1 Hz
-//     assert_led_blink_freq(&iv_pump_led, 2000, 1, 1, "iv_pump");
-//     assert_led_blink_freq(&buzzer_led, 2000, 1, 1, "buzzer");
-
-//     // Error LED should be off
-//     assert_led_off(&error_led, "error");
-// }
-
-// /* single presses separated outside 500 ms -> two +1 Hz increments */
-// ZTEST(state_machine_tests, test_22_single_presses_separated)
-// {
-//     start_main(1000);
-
-//     simulate_button_click(&freq_up_button);
-//     k_event_wait(&program_test_events, FREQ_UP_TEST_NOTICE, true, K_MSEC(200));
-
-//     // Wait longer than double-press window
-//     k_msleep(600);
-
-//     simulate_button_click(&freq_up_button);
-//     k_event_wait(&program_test_events, FREQ_UP_TEST_NOTICE, true, K_MSEC(200));
-
-//     // Heartbeat LED still at 1 Hz, 25% duty
-//     assert_led_duty_cycle_25(&heartbeat_led, "heartbeat");
-
-//     // Action LEDs should have increased by +2 Hz total (1 Hz each press)
-//     assert_led_blink_freq(&iv_pump_led, 2000, 4, 1, "iv_pump");
-//     assert_led_blink_freq(&buzzer_led, 2000, 4, 1, "buzzer");
-
-//     // Error LED off
-//     assert_led_off(&error_led, "error");
-// }
-
-// /* double press during sleep -> ignored for action LEDs */
-// ZTEST(state_machine_tests, test_23_double_press_during_sleep)
-// {
-//     start_main(1000);
-
-//     // Enter sleep state
-//     simulate_button_click(&sleep_button);
-//     k_event_wait(&program_test_events, SLEEP_TEST_NOTICE, true, K_MSEC(200));
-
-//     // Try double press while asleep
-//     simulate_button_click(&freq_up_button);
-//     k_msleep(400);
-//     simulate_button_click(&freq_up_button);
-
-//     k_msleep(50);  // allow main thread to process
-
-//     // Heartbeat should still blink normally
-//     assert_led_duty_cycle_25(&heartbeat_led, "heartbeat");
-
-//     // Action LEDs should remain off while asleep
-//     assert_led_off(&iv_pump_led, "iv_pump");
-//     assert_led_off(&buzzer_led, "buzzer");
-
-//     // Error LED off
-//     assert_led_off(&error_led, "error");
-// }
-
-// /* double press freq down -> action LEDs go below min -> error state */
-// ZTEST(state_machine_tests, test_24_double_press_freq_down)
-// {
-//     start_main(1000);
-
-//     // Simulate two freq_down_button presses within 500 ms
-//     simulate_button_click(&freq_down_button);
-//     k_msleep(400);  // within double-press window
-//     simulate_button_click(&freq_down_button);
-
-//     // Wait for the event indicating freq change (single or double press)
-//     uint32_t events = k_event_wait(&program_test_events,
-//                                    FREQ_DOWN_TEST_NOTICE,
-//                                    true,
-//                                    K_MSEC(200));
-//     (void)events;
-
-//     // Heartbeat LED continues to blink at 1 Hz, 25% duty
-//     assert_led_duty_cycle_25(&heartbeat_led, "heartbeat");
-
-//     // Action LEDs should be OFF due to error
-//     assert_led_off(&iv_pump_led, "iv_pump");
-//     assert_led_off(&buzzer_led, "buzzer");
-
-//     // Error LED should be ON
-//     assert_led_on(&error_led, "error");
-// }
 
 // /* description */
 // ZTEST(state_machine_tests, test_xx_name)
