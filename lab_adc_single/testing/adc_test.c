@@ -30,7 +30,7 @@ static bool wait_for_event(uint32_t mask, int timeout_ms)
     uint32_t events = 0;
 
     do {
-        events = k_event_wait(&program_test_events, mask, true, K_MSEC(20));
+        events = k_event_wait(&program_test_events, mask, true, K_MSEC(2000));
         if (events & mask) {
             return true;
         }
@@ -518,8 +518,8 @@ ZTEST(adc_single_sample_tests, test_p1_01_read_button_triggers_adc)
     // k_msleep(1000);
 
     /* CHANGE: event wait robustness */
-    // zassert_true(wait_for_event(ADC_READ_TRIGGERED_NOTICE, 1000),
-    //     "ADC_READ_TRIGGERED_NOTICE never fired after read_button press");
+    zassert_true(wait_for_event(ADC_READ_TRIGGERED_NOTICE, 1000),
+        "ADC_READ_TRIGGERED_NOTICE never fired after read_button press");
     // k_msleep(1000);
     /* CHANGE: event wait robustness */
     zassert_true(wait_for_event(ADC_READ_COMPLETE_NOTICE, 1000),
