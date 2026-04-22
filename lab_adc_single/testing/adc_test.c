@@ -48,15 +48,17 @@ static void before(void *)
 {
     stop_main();
 
-    /* Reset all button pins to inactive to prevent stray callbacks on start_main */
     gpio_emul_input_set(read_button.port,  read_button.pin,  0);
     gpio_emul_input_set(sleep_button.port, sleep_button.pin, 0);
     gpio_emul_input_set(reset_button.port, reset_button.pin, 0);
-    k_msleep(10);
 
     adc_emul_dev = DEVICE_DT_GET(ADC_EMUL_NODE);
     zassert_true(device_is_ready(adc_emul_dev), "ADC emulator not ready");
 
+    /* Start main and let it fully settle into IDLE first */
+    start_main(500);
+
+    /* NOW clear — after all init stray callbacks have already fired */
     k_event_clear(&program_test_events,
         FREQ_UP_TEST_NOTICE | FREQ_DOWN_TEST_NOTICE |
         RESET_BTN_TEST_NOTICE | SLEEP_BTN_TEST_NOTICE |
@@ -494,7 +496,7 @@ static void assert_cycles_computed(int expected_cycles, int tolerance)
 ZTEST(adc_single_sample_tests, test_p1_01_read_button_triggers_adc)
 {
     set_ain0_mv(adc_emul_dev, 1500);
-    start_main(500);
+    // start_main(500);
 
     // k_msleep(1000);
 
@@ -520,7 +522,7 @@ ZTEST(adc_single_sample_tests, test_p1_01_read_button_triggers_adc)
 ZTEST(adc_single_sample_tests, test_p1_02_zero_volts_maps_to_1hz)
 {
     set_ain0_mv(adc_emul_dev, 0);
-    start_main(500);
+    // start_main(500);
 
     simulate_button_click(&read_button);
     // k_event_wait(&program_test_events, ADC_READ_COMPLETE_NOTICE, true, K_MSEC(500));
@@ -539,7 +541,7 @@ ZTEST(adc_single_sample_tests, test_p1_02_zero_volts_maps_to_1hz)
 ZTEST(adc_single_sample_tests, test_p1_03_full_volts_maps_to_5hz)
 {
     set_ain0_mv(adc_emul_dev, 3000);
-    start_main(500);
+    // start_main(500);
 
     simulate_button_click(&read_button);
     // k_event_wait(&program_test_events, ADC_READ_COMPLETE_NOTICE, true, K_MSEC(500));
@@ -555,7 +557,7 @@ ZTEST(adc_single_sample_tests, test_p1_03_full_volts_maps_to_5hz)
 ZTEST(adc_single_sample_tests, test_p1_04_mid_volts_maps_to_3hz)
 {
     set_ain0_mv(adc_emul_dev, 1500);
-    start_main(500);
+    // start_main(500);
 
     simulate_button_click(&read_button);
     // k_event_wait(&program_test_events, ADC_READ_COMPLETE_NOTICE, true, K_MSEC(500));
@@ -572,7 +574,7 @@ ZTEST(adc_single_sample_tests, test_p1_04_mid_volts_maps_to_3hz)
 ZTEST(adc_single_sample_tests, test_p1_05_duty_cycle_10pct)
 {
     set_ain0_mv(adc_emul_dev, 1500);
-    start_main(500);
+    // start_main(500);
 
     simulate_button_click(&read_button);
     // k_event_wait(&program_test_events, ADC_READ_COMPLETE_NOTICE, true, K_MSEC(500));
@@ -589,7 +591,7 @@ ZTEST(adc_single_sample_tests, test_p1_05_duty_cycle_10pct)
 ZTEST(adc_single_sample_tests, test_p1_06_blink_duration_5s)
 {
     set_ain0_mv(adc_emul_dev, 1500);
-    start_main(500);
+    // start_main(500);
 
     simulate_button_click(&read_button);
     // k_event_wait(&program_test_events, ADC_READ_COMPLETE_NOTICE, true, K_MSEC(500));
@@ -610,7 +612,7 @@ ZTEST(adc_single_sample_tests, test_p1_06_blink_duration_5s)
 ZTEST(adc_single_sample_tests, test_p1_07_read_button_disabled_during_blink)
 {
     set_ain0_mv(adc_emul_dev, 1500);
-    start_main(500);
+    // start_main(500);
 
     /* First press — valid */
     simulate_button_click(&read_button);
@@ -685,7 +687,7 @@ ZTEST(adc_single_sample_tests, test_p1_08_error_on_bad_voltage)
 
     zassert_ok(ret, "failed to set error callback");
 
-    start_main(500);
+    // start_main(500);
 
     simulate_button_click(&read_button);
 
@@ -734,7 +736,7 @@ ZTEST(adc_single_sample_tests, test_p1_09_linearity_sweep)
             ADC_BLINK_DONE_NOTICE);
 
         set_ain0_mv(adc_emul_dev, voltages_mv[i]);
-        start_main(500);
+        // start_main(500);
 
         simulate_button_click(&read_button);
         uint32_t events = k_event_wait(&program_test_events,
@@ -763,7 +765,7 @@ ZTEST(adc_single_sample_tests, test_p1_09_linearity_sweep)
 ZTEST(adc_single_sample_tests, test_p1_10_heartbeat_unaffected)
 {
     set_ain0_mv(adc_emul_dev, 1500);
-    start_main(500);
+    // start_main(500);
 
     simulate_button_click(&read_button);
     k_event_wait(&program_test_events, ADC_READ_COMPLETE_NOTICE, true, K_MSEC(500));
