@@ -27,10 +27,25 @@
     sim_adc_keys {
         compatible = "gpio-keys";
 
-        sim_adc_btn1: key_24 { gpios = <&gpio0 24 GPIO_ACTIVE_HIGH>; };
-        sim_adc_btn2: key_25 { gpios = <&gpio0 25 GPIO_ACTIVE_HIGH>; };
-        sim_adc_btn3: key_26 { gpios = <&gpio0 26 GPIO_ACTIVE_HIGH>; };
-        sim_adc_btn4: key_27 { gpios = <&gpio0 27 GPIO_ACTIVE_HIGH>; };
+        sim_adc_btn1: key_24 {
+            gpios = <&gpio0 24 GPIO_ACTIVE_HIGH>;
+            zephyr,code = <0>;
+        };
+
+        sim_adc_btn2: key_25 {
+            gpios = <&gpio0 25 GPIO_ACTIVE_HIGH>;
+            zephyr,code = <1>;
+        };
+
+        sim_adc_btn3: key_26 {
+            gpios = <&gpio0 26 GPIO_ACTIVE_HIGH>;
+            zephyr,code = <2>;
+        };
+
+        sim_adc_btn4: key_27 {
+            gpios = <&gpio0 27 GPIO_ACTIVE_HIGH>;
+            zephyr,code = <3>;
+        };
     };
 
     adc_emul: adc_emul {
