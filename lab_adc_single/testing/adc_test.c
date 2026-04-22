@@ -30,7 +30,7 @@ static bool wait_for_event(uint32_t mask, int timeout_ms)
     uint32_t events = 0;
 
     do {
-        events = k_event_wait(&program_test_events, mask, true, K_MSEC(2000));
+        events = k_event_wait(&program_test_events, mask, false, K_MSEC(20));
         if (events & mask) {
             return true;
         }
@@ -512,9 +512,12 @@ ZTEST(adc_single_sample_tests, test_p1_01_read_button_triggers_adc)
     set_ain0_mv(adc_emul_dev, 1500);
     // start_main(500);
 
-    // k_msleep(1000);
+    k_event_clear(&program_test_events, ADC_READ_TRIGGERED_NOTICE | ADC_READ_COMPLETE_NOTICE);
 
+    // k_msleep(1000);
+    printk("***** simulate button click read button*****\n");
     simulate_button_click(&read_button);
+    printk("***** after simulate button click read button*****\n");
     // k_msleep(1000);
 
     /* CHANGE: event wait robustness */
