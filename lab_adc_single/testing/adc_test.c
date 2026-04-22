@@ -533,7 +533,7 @@ ZTEST(adc_single_sample_tests, test_p1_01_read_button_triggers_adc)
                                    K_MSEC(1000));
 
     if(events & ADC_READ_TRIGGERED_NOTICE){
-        printk("events & ADC_READ_TRIGGERED_NOTICE \n")
+        printk("events & ADC_READ_TRIGGERED_NOTICE \n");
     } else if (events & ADC_READ_COMPLETE_NOTICE){
         printk("events & ADC_READ_COMPLETE_NOTICE\n");
     }
