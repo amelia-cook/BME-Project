@@ -532,8 +532,16 @@ ZTEST(adc_single_sample_tests, test_p1_01_read_button_triggers_adc)
                                    false,   /* don't reset — we'll check both bits */
                                    K_MSEC(1000));
 
+    if(events & ADC_READ_TRIGGERED_NOTICE){
+        printk("events & ADC_READ_TRIGGERED_NOTICE \n")
+    } else if (events & ADC_READ_COMPLETE_NOTICE){
+        printk("events & ADC_READ_COMPLETE_NOTICE\n");
+    }
+
     zassert_true(events & ADC_READ_TRIGGERED_NOTICE,
         "ADC_READ_TRIGGERED_NOTICE never fired (events=0x%x)", events);
+
+    k_msleep(2000);
 
     zassert_true(events & ADC_READ_COMPLETE_NOTICE,
         "ADC_READ_COMPLETE_NOTICE never fired (events=0x%x)", events);
@@ -547,6 +555,7 @@ ZTEST(adc_single_sample_tests, test_p1_01_read_button_triggers_adc)
     // zassert_true(wait_for_event(ADC_READ_COMPLETE_NOTICE, 1000),
     //     "ADC_READ_COMPLETE_NOTICE never fired");
     // k_msleep(1000);
+
     zassert_within(student_adc_mv, 1500, 200,
         "student_adc_mv mismatch");
 }
@@ -559,6 +568,8 @@ ZTEST(adc_single_sample_tests, test_p1_02_zero_volts_maps_to_1hz)
 {
     set_ain0_mv(adc_emul_dev, 0);
     // start_main(500);
+    k_event_clear(&program_test_events, ADC_READ_TRIGGERED_NOTICE | ADC_READ_COMPLETE_NOTICE);
+
 
     simulate_button_click(&read_button);
     // k_event_wait(&program_test_events, ADC_READ_COMPLETE_NOTICE, true, K_MSEC(500));
@@ -578,6 +589,8 @@ ZTEST(adc_single_sample_tests, test_p1_03_full_volts_maps_to_5hz)
 {
     set_ain0_mv(adc_emul_dev, 3000);
     // start_main(500);
+    k_event_clear(&program_test_events, ADC_READ_TRIGGERED_NOTICE | ADC_READ_COMPLETE_NOTICE);
+
 
     simulate_button_click(&read_button);
     // k_event_wait(&program_test_events, ADC_READ_COMPLETE_NOTICE, true, K_MSEC(500));
@@ -593,6 +606,8 @@ ZTEST(adc_single_sample_tests, test_p1_03_full_volts_maps_to_5hz)
 ZTEST(adc_single_sample_tests, test_p1_04_mid_volts_maps_to_3hz)
 {
     set_ain0_mv(adc_emul_dev, 1500);
+    k_event_clear(&program_test_events, ADC_READ_TRIGGERED_NOTICE | ADC_READ_COMPLETE_NOTICE);
+
     // start_main(500);
 
     simulate_button_click(&read_button);
@@ -610,6 +625,8 @@ ZTEST(adc_single_sample_tests, test_p1_04_mid_volts_maps_to_3hz)
 ZTEST(adc_single_sample_tests, test_p1_05_duty_cycle_10pct)
 {
     set_ain0_mv(adc_emul_dev, 1500);
+    k_event_clear(&program_test_events, ADC_READ_TRIGGERED_NOTICE | ADC_READ_COMPLETE_NOTICE);
+
     // start_main(500);
 
     simulate_button_click(&read_button);
@@ -627,6 +644,8 @@ ZTEST(adc_single_sample_tests, test_p1_05_duty_cycle_10pct)
 ZTEST(adc_single_sample_tests, test_p1_06_blink_duration_5s)
 {
     set_ain0_mv(adc_emul_dev, 1500);
+    k_event_clear(&program_test_events, ADC_READ_TRIGGERED_NOTICE | ADC_READ_COMPLETE_NOTICE);
+
     // start_main(500);
 
     simulate_button_click(&read_button);
@@ -648,6 +667,8 @@ ZTEST(adc_single_sample_tests, test_p1_06_blink_duration_5s)
 ZTEST(adc_single_sample_tests, test_p1_07_read_button_disabled_during_blink)
 {
     set_ain0_mv(adc_emul_dev, 1500);
+    k_event_clear(&program_test_events, ADC_READ_TRIGGERED_NOTICE | ADC_READ_COMPLETE_NOTICE);
+
     // start_main(500);
 
     /* First press — valid */
@@ -718,6 +739,8 @@ ZTEST(adc_single_sample_tests, test_p1_08_error_on_bad_voltage)
      * Alternative: many zephyr,adc-emul builds support returning an error code
      * from the value callback (return -EIO).  We use that here.
      */
+     k_event_clear(&program_test_events, ADC_READ_TRIGGERED_NOTICE | ADC_READ_COMPLETE_NOTICE);
+
     int ret = adc_emul_value_func_set(adc_emul_dev, AIN0_CHANNEL_ID,
                                       ain0_over_range_cb, NULL);
 
@@ -764,6 +787,8 @@ ZTEST(adc_single_sample_tests, test_p1_09_linearity_sweep)
     int expected_hz[]  = {1,   2,    3,    4,    5};
     float prev_freq    = -1.0f;
 
+    k_event_clear(&program_test_events, ADC_READ_TRIGGERED_NOTICE | ADC_READ_COMPLETE_NOTICE);
+
     for (int i = 0; i < 5; i++) {
         /* Reset to IDLE before each sub-test */
         stop_main();
@@ -801,6 +826,8 @@ ZTEST(adc_single_sample_tests, test_p1_09_linearity_sweep)
 ZTEST(adc_single_sample_tests, test_p1_10_heartbeat_unaffected)
 {
     set_ain0_mv(adc_emul_dev, 1500);
+    k_event_clear(&program_test_events, ADC_READ_TRIGGERED_NOTICE | ADC_READ_COMPLETE_NOTICE);
+
     // start_main(500);
 
     simulate_button_click(&read_button);
