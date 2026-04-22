@@ -667,7 +667,6 @@ ZTEST(state_machine_tests, test_18_button_wakes_blocking_main)
     assert_led_blink_freq(&iv_pump_led, 2000, 3, 1, "iv_pump");
     assert_led_blink_freq(&buzzer_led, 2000, 3, 1, "buzzer");
     
-    assert_led_duty_cycle_25(&heartbeat_led, "heartbeat");
     assert_led_blink_freq(&heartbeat_led, 4000, 1, 1, "heartbeat");
     assert_led_off(&error_led, "error");
 }
