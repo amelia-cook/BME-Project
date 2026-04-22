@@ -60,6 +60,11 @@ static void before(void *)
 
     /* NOW clear — after all init stray callbacks have already fired */
     k_event_clear(&program_test_events,
+        ADC_READ_TRIGGERED_NOTICE | ADC_READ_COMPLETE_NOTICE |
+        ADC_BLINK_DONE_NOTICE |
+        ADC_SAMPLE_TRIGGERED_NOTICE | ADC_SAMPLE_COMPLETE_NOTICE);
+
+        /*
         FREQ_UP_TEST_NOTICE | FREQ_DOWN_TEST_NOTICE |
         RESET_BTN_TEST_NOTICE | SLEEP_BTN_TEST_NOTICE |
         ERROR_TEST_NOTICE | RESET_TEST_NOTICE | SLEEP_TEST_NOTICE |
@@ -67,7 +72,8 @@ static void before(void *)
         ADC_BLINK_DONE_NOTICE |
         ADC_SAMPLE_TRIGGERED_NOTICE | ADC_SAMPLE_COMPLETE_NOTICE |
         ADC_CYCLES_COMPUTED_NOTICE |
-        ADC_ASYNC_DONE_NOTICE | ADC_ASYNC_TIMEOUT_NOTICE);
+        ADC_ASYNC_DONE_NOTICE | ADC_ASYNC_TIMEOUT_NOTICE
+        */
 }
 
 static void after(void *)
