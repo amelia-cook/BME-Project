@@ -48,20 +48,18 @@ static void before(void *)
 {
     stop_main();
 
-    /* Grab the emulated ADC device */
-    adc_emul_dev = DEVICE_DT_GET(ADC_EMUL_NODE);
-    zassert_true(device_is_ready(adc_emul_dev), "ADC emulator not ready");
+    /* Reset all button pins to inactive so no stray edge fires on start_main */
+    gpio_emul_input_set(read_button.port,  read_button.pin,  0);
+    gpio_emul_input_set(sleep_button.port, sleep_button.pin, 0);
+    gpio_emul_input_set(reset_button.port, reset_button.pin, 0);
+
+    k_msleep(10);  /* let any pending callbacks drain */
 
     /* Clear all event bits */
-    k_event_clear(&program_test_events,
-        FREQ_UP_TEST_NOTICE | FREQ_DOWN_TEST_NOTICE |
-        RESET_BTN_TEST_NOTICE | SLEEP_BTN_TEST_NOTICE |
-        ERROR_TEST_NOTICE | RESET_TEST_NOTICE | SLEEP_TEST_NOTICE |
-        ADC_READ_TRIGGERED_NOTICE | ADC_READ_COMPLETE_NOTICE |
-        ADC_BLINK_DONE_NOTICE |
-        ADC_SAMPLE_TRIGGERED_NOTICE | ADC_SAMPLE_COMPLETE_NOTICE |
-        ADC_CYCLES_COMPUTED_NOTICE |
-        ADC_ASYNC_DONE_NOTICE | ADC_ASYNC_TIMEOUT_NOTICE);
+    k_event_clear(&program_test_events, ...);
+
+    adc_emul_dev = DEVICE_DT_GET(ADC_EMUL_NODE);
+    zassert_true(device_is_ready(adc_emul_dev), "ADC emulator not ready");
 }
 
 static void after(void *)
