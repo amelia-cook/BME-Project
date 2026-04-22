@@ -232,25 +232,40 @@ static int ain0_const_cb(const struct device *dev,
 
 static void set_ain0_mv(const struct device *dev, int millivolts)
 {
-    #define EFFECTIVE_FS_MV  900
+    if (millivolts < 0)        { millivolts = 0; }
+    if (millivolts > 3000)     { millivolts = 3000; }  /* effective FS = ref*5 = 3000 mV */
 
-    if (millivolts < 0)             { millivolts = 0; }
-    if (millivolts > EFFECTIVE_FS_MV){ millivolts = EFFECTIVE_FS_MV; }
-
-    // OLD (assumes GAIN_1):
-    // g_ain0_raw_value = (uint32_t)(((uint64_t)millivolts * 4095U) / MAX_V_MV);
-
-    // NEW (accounts for ADC_GAIN_1_5 in student's channel config):
-    // g_ain0_raw_value = (uint32_t)(((uint64_t)millivolts * 4095U * 3U) / (MAX_V_MV * 2U));
-
-    // int ret = adc_emul_value_func_set(dev, AIN0_CHANNEL_ID, ain0_const_cb, NULL);
-    // zassert_ok(ret, "set_ain0_mv: adc_emul_value_func_set failed (%d)", ret);
-
-    g_ain0_raw_value = (uint32_t)(((uint64_t)millivolts * 4095U) / EFFECTIVE_FS_MV);
+    /* raw = mv * 4096 / (ref_mv * gain_denom / gain_numer)
+     *     = mv * 4096 / (600 * 5)
+     *     = mv * 4096 / 3000                                */
+    g_ain0_raw_value = (uint32_t)(((uint64_t)millivolts * 4096U) / 3000U);
+    if (g_ain0_raw_value > 4095) { g_ain0_raw_value = 4095; }
 
     int ret = adc_emul_value_func_set(dev, AIN0_CHANNEL_ID, ain0_const_cb, NULL);
     zassert_ok(ret, "set_ain0_mv: adc_emul_value_func_set failed (%d)", ret);
 }
+
+// static void set_ain0_mv(const struct device *dev, int millivolts)
+// {
+//     #define EFFECTIVE_FS_MV  900
+
+//     if (millivolts < 0)             { millivolts = 0; }
+//     if (millivolts > EFFECTIVE_FS_MV){ millivolts = EFFECTIVE_FS_MV; }
+
+//     // OLD (assumes GAIN_1):
+//     // g_ain0_raw_value = (uint32_t)(((uint64_t)millivolts * 4095U) / MAX_V_MV);
+
+//     // NEW (accounts for ADC_GAIN_1_5 in student's channel config):
+//     // g_ain0_raw_value = (uint32_t)(((uint64_t)millivolts * 4095U * 3U) / (MAX_V_MV * 2U));
+
+//     // int ret = adc_emul_value_func_set(dev, AIN0_CHANNEL_ID, ain0_const_cb, NULL);
+//     // zassert_ok(ret, "set_ain0_mv: adc_emul_value_func_set failed (%d)", ret);
+
+//     g_ain0_raw_value = (uint32_t)(((uint64_t)millivolts * 4095U) / EFFECTIVE_FS_MV);
+
+//     int ret = adc_emul_value_func_set(dev, AIN0_CHANNEL_ID, ain0_const_cb, NULL);
+//     zassert_ok(ret, "set_ain0_mv: adc_emul_value_func_set failed (%d)", ret);
+// }
 
 /* --- Phase 1: duty-cycle measurement ------------------------------- */
 
@@ -537,22 +552,19 @@ static void assert_cycles_computed(int expected_cycles, int tolerance)
 
 ZTEST(adc_single_sample_tests, test_p1_01_read_button_triggers_adc)
 {
-    set_ain0_mv(adc_emul_dev, 700);
+    set_ain0_mv(adc_emul_dev, 1500);
     // start_main(500);
 
     k_event_clear(&program_test_events, ADC_READ_TRIGGERED_NOTICE | ADC_READ_COMPLETE_NOTICE);
 
-    // k_msleep(1000);
     printk("***** simulate button click read button*****\n");
     simulate_button_click(&read_button);
     printk("***** after simulate button click read button*****\n");
-    // k_msleep(1000);
 
     // k_event_wait()
     uint32_t events = k_event_wait(&program_test_events,
                                    ADC_READ_TRIGGERED_NOTICE | ADC_READ_COMPLETE_NOTICE,
-                                   false,   /* don't reset — we'll check both bits */
-                                   K_MSEC(1000));
+                                   false, K_MSEC(1000));
 
     if(events & ADC_READ_TRIGGERED_NOTICE){
         printk("events & ADC_READ_TRIGGERED_NOTICE \n");
@@ -568,17 +580,7 @@ ZTEST(adc_single_sample_tests, test_p1_01_read_button_triggers_adc)
     zassert_true(events & ADC_READ_COMPLETE_NOTICE,
         "ADC_READ_COMPLETE_NOTICE never fired (events=0x%x)", events);
 
-
-    /* CHANGE: event wait robustness */
-    // zassert_true(wait_for_event(ADC_READ_TRIGGERED_NOTICE, 1000),
-    //     "ADC_READ_TRIGGERED_NOTICE never fired after read_button press");
-    // // k_msleep(1000);
-    // /* CHANGE: event wait robustness */
-    // zassert_true(wait_for_event(ADC_READ_COMPLETE_NOTICE, 1000),
-    //     "ADC_READ_COMPLETE_NOTICE never fired");
-    // k_msleep(1000);
-
-    zassert_within(student_adc_mv, 700, 200, "student_adc_mv mismatch");
+    zassert_within(student_adc_mv, 1500, 200, "student_adc_mv mismatch");
 }
 
 
@@ -602,6 +604,8 @@ ZTEST(adc_single_sample_tests, test_p1_02_zero_volts_maps_to_1hz)
     assert_blinker_freq(3000, 1, 1);
     assert_led_blink_freq(&heartbeat_led, 2000, 1, 1, "heartbeat");
 }
+
+
 
 /*
  * 3000 mV → should map to 5 Hz (maximum).
