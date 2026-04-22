@@ -220,12 +220,27 @@ static int ain0_const_cb(const struct device *dev,
  * The emulator's ref-internal-mv = 3000, resolution = 12 bits.
  * raw = (mv / 3000) * 4095   (clamped to [0, 4095])
  */
+// static void set_ain0_mv(const struct device *dev, int millivolts)
+// {
+//     if (millivolts < 0)       { millivolts = 0; }
+//     if (millivolts > MAX_V_MV){ millivolts = MAX_V_MV; }
+
+//     g_ain0_raw_value = (uint32_t)(((uint64_t)millivolts * 4095U) / MAX_V_MV);
+//     int ret = adc_emul_value_func_set(dev, AIN0_CHANNEL_ID, ain0_const_cb, NULL);
+//     zassert_ok(ret, "set_ain0_mv: adc_emul_value_func_set failed (%d)", ret);
+// }
+
 static void set_ain0_mv(const struct device *dev, int millivolts)
 {
-    if (millivolts < 0)       { millivolts = 0; }
-    if (millivolts > MAX_V_MV){ millivolts = MAX_V_MV; }
+    if (millivolts < 0)        { millivolts = 0; }
+    if (millivolts > MAX_V_MV) { millivolts = MAX_V_MV; }
 
-    g_ain0_raw_value = (uint32_t)(((uint64_t)millivolts * 4095U) / MAX_V_MV);
+    // OLD (assumes GAIN_1):
+    // g_ain0_raw_value = (uint32_t)(((uint64_t)millivolts * 4095U) / MAX_V_MV);
+
+    // NEW (accounts for ADC_GAIN_1_5 in student's channel config):
+    g_ain0_raw_value = (uint32_t)(((uint64_t)millivolts * 4095U * 3U) / (MAX_V_MV * 2U));
+
     int ret = adc_emul_value_func_set(dev, AIN0_CHANNEL_ID, ain0_const_cb, NULL);
     zassert_ok(ret, "set_ain0_mv: adc_emul_value_func_set failed (%d)", ret);
 }
@@ -541,7 +556,7 @@ ZTEST(adc_single_sample_tests, test_p1_01_read_button_triggers_adc)
     zassert_true(events & ADC_READ_TRIGGERED_NOTICE,
         "ADC_READ_TRIGGERED_NOTICE never fired (events=0x%x)", events);
 
-    k_msleep(2000);
+    k_msleep(1000);
 
     zassert_true(events & ADC_READ_COMPLETE_NOTICE,
         "ADC_READ_COMPLETE_NOTICE never fired (events=0x%x)", events);
