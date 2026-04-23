@@ -145,77 +145,136 @@ static void assert_led_on(const struct gpio_dt_spec *led, const char *led_name)
 /* Return bool LED is ON */
 static bool is_led_on(const struct gpio_dt_spec *led)
 {
-    int val = gpio_emul_output_get(led->port, led->pin);
-    return (val == 1);
+    return gpio_emul_output_get(led->port, led->pin) == 1;
 }
 
-/* Assert heartbeat duty cycle */
-static void assert_led_duty_cycle_25(const struct gpio_dt_spec *led,
-                                     const char *led_name)
+static void led_edge_duty_callback(const struct device *dev,
+                              struct gpio_callback *cb,
+                              uint32_t pins)
 {
-    const int sample_cycles = 4;
-    const float tolerance = 0.10f;  // ±10%
+    int64_t now = k_uptime_get();
+    int64_t delta = now - ctx.last_ts;
 
-    bool last_state = is_led_on(led);
-
-    /* Sync to first edge */
-    while (1) {
-        k_msleep(5);
-        bool cur_state = is_led_on(led);
-
-        if (cur_state != last_state) {
-            last_state = cur_state;
-            break;
-        }
+    if (ctx.last_state) {
+        ctx.on_time += delta;
     }
+    ctx.total_time += delta;
 
-    int64_t last_time = k_uptime_get();
+    ctx.last_state = !ctx.last_state;
+    ctx.last_ts = now;
+}
 
-    int on_time = 0;
-    int off_time = 0;
-    int transitions = 0;
-    int target_transitions = sample_cycles * 2;
+static void assert_led_duty_cycle(const struct gpio_dt_spec *led,
+                                  const char *name,
+                                  int window_ms,
+                                  float expected_duty,
+                                  float tolerance)
+{
+    struct gpio_callback cb;
 
-    while (transitions < target_transitions) {
+    ctx.led = led;
+    ctx.on_time = 0;
+    ctx.total_time = 0;
 
-        while (1) {
-            k_msleep(5);
+    ctx.last_state = gpio_emul_output_get(led->port, led->pin);
+    ctx.last_ts = k_uptime_get();
 
-            bool cur_state = is_led_on(led);
+    gpio_init_callback(&cb, duty_edge_callback, BIT(led->pin));
 
-            if (cur_state != last_state) {
-                int64_t now = k_uptime_get();
-                int delta = now - last_time;
+    int ret = gpio_add_callback_dt(led, &cb);
+    zassert_true(ret == 0, "LED %s: callback add failed", name);
 
-                if (last_state) {
-                    on_time += delta;
-                } else {
-                    off_time += delta;
-                }
+    ret = gpio_pin_interrupt_configure_dt(led, GPIO_INT_EDGE_BOTH);
+    zassert_true(ret == 0, "LED %s: interrupt config failed", name);
 
-                last_state = cur_state;
-                last_time = now;
-                transitions++;
-                break;
-            }
-        }
-    }
+    k_msleep(window_ms);
 
-    int total = on_time + off_time;
+    gpio_pin_interrupt_configure_dt(led, GPIO_INT_DISABLE);
+    gpio_remove_callback_dt(led, &cb);
 
-    zassert_true(total > 0,
-        "LED %s: no activity detected", led_name);
+    zassert_true(ctx.total_time > 0,
+        "LED %s: no activity detected", name);
 
-    float duty = (float)on_time / (float)total;
-    const float expected = 0.25f;
+    float measured_duty = (float)ctx.on_time / (float)ctx.total_time;
 
     zassert_true(
-        duty > (expected - tolerance) &&
-        duty < (expected + tolerance),
-        "LED %s: duty cycle incorrect (got %.2f, expected ~0.25)",
-        led_name, (double)duty
+        measured_duty > (expected_duty - tolerance) &&
+        measured_duty < (expected_duty + tolerance),
+        "LED %s: duty %.2f (expected %.2f ± %.2f)",
+        name,
+        (double)measured_duty,
+        (double)expected_duty,
+        (double)tolerance
     );
 }
+
+// /* Assert heartbeat duty cycle */
+// static void assert_led_duty_cycle_25(const struct gpio_dt_spec *led,
+//                                      const char *led_name)
+// {
+//     const int sample_cycles = 4;
+//     const float tolerance = 0.10f;  // ±10%
+
+//     bool last_state = is_led_on(led);
+
+//     /* Sync to first edge */
+//     while (1) {
+//         k_msleep(5);
+//         bool cur_state = is_led_on(led);
+
+//         if (cur_state != last_state) {
+//             last_state = cur_state;
+//             break;
+//         }
+//     }
+
+//     int64_t last_time = k_uptime_get();
+
+//     int on_time = 0;
+//     int off_time = 0;
+//     int transitions = 0;
+//     int target_transitions = sample_cycles * 2;
+
+//     while (transitions < target_transitions) {
+
+//         while (1) {
+//             k_msleep(5);
+
+//             bool cur_state = is_led_on(led);
+
+//             if (cur_state != last_state) {
+//                 int64_t now = k_uptime_get();
+//                 int delta = now - last_time;
+
+//                 if (last_state) {
+//                     on_time += delta;
+//                 } else {
+//                     off_time += delta;
+//                 }
+
+//                 last_state = cur_state;
+//                 last_time = now;
+//                 transitions++;
+//                 break;
+//             }
+//         }
+//     }
+
+//     int total = on_time + off_time;
+
+//     zassert_true(total > 0,
+//         "LED %s: no activity detected", led_name);
+
+//     float duty = (float)on_time / (float)total;
+//     const float expected = 0.25f;
+
+//     zassert_true(
+//         duty > (expected - tolerance) &&
+//         duty < (expected + tolerance),
+//         "LED %s: duty cycle incorrect (got %.2f, expected ~0.25)",
+//         led_name, (double)duty
+//     );
+// }
 
 /* ================================================================== */
 /*  TESTS                                                             */
@@ -649,7 +708,8 @@ ZTEST(state_machine_tests, test_17_heartbeat_duty_cycle)
 {
     start_main(1000);
     
-    assert_led_duty_cycle_25(&heartbeat_led, "heartbeat");
+    // assert_led_duty_cycle_25(&heartbeat_led, "heartbeat");
+    assert_led_duty_cycle(&heartbeat_led, "heartbeat", 4000, 0.25f, 0.1f);
     assert_led_blink_freq(&heartbeat_led, 4000, 1, 1, "heartbeat");
     assert_led_blink_freq(&iv_pump_led, 4000, 2, 1, "iv_pump");
     assert_led_blink_freq(&buzzer_led, 4000, 2, 1, "buzzer");
@@ -679,7 +739,8 @@ ZTEST(state_machine_tests, test_18_button_wakes_blocking_main)
     assert_led_blink_freq(&iv_pump_led, 2000, 3, 1, "iv_pump");
     assert_led_blink_freq(&buzzer_led, 2000, 3, 1, "buzzer");
     
-    assert_led_duty_cycle_25(&heartbeat_led, "heartbeat");
+    // assert_led_duty_cycle_25(&heartbeat_led, "heartbeat");
+    assert_led_duty_cycle(&heartbeat_led, "heartbeat", 4000, 0.25f, 0.1f);
     assert_led_blink_freq(&heartbeat_led, 4000, 1, 1, "heartbeat");
     assert_led_off(&error_led, "error");
 }

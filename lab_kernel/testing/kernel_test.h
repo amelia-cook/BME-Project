@@ -63,6 +63,17 @@ static bool is_led_on(const struct gpio_dt_spec *led);
 static void assert_led_duty_cycle_25(const struct gpio_dt_spec *led,
                                      const char *led_name);
 
+struct duty_ctx {
+    const struct gpio_dt_spec *led;
+
+    int64_t last_ts;
+    bool last_state;
+
+    int64_t on_time;
+    int64_t total_time;
+};
+static struct duty_ctx ctx;
+
 #endif // KERNEL_TEST_H
 
 
