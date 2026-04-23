@@ -248,12 +248,12 @@ static int ain0_const_cb(const struct device *dev,
 static void set_ain0_mv(const struct device *dev, int millivolts)
 {
     if (millivolts < 0)    { millivolts = 0; }
-    if (millivolts > 3000) { millivolts = 3000; }
+    if (millivolts > 600U) { millivolts = 600; }
 
-    uint32_t raw = (uint32_t)(((uint64_t)millivolts * 4096U) / 3000U);
+    uint32_t raw = (uint32_t)(((uint64_t)millivolts * 4095U) / 600U);
     if (raw > 4095) { raw = 4095; }
 
-    int ret = adc_emul_const_raw_value_set(dev, AIN0_CHANNEL_ID, raw);
+    int ret = adc_emul_const_value_set(dev, AIN0_CHANNEL_ID, raw);
     zassert_ok(ret, "set_ain0_mv: const_raw_value_set failed (%d)", ret);
 }
 
@@ -564,7 +564,7 @@ static void assert_cycles_computed(int expected_cycles, int tolerance)
 
 ZTEST(adc_single_sample_tests, test_p1_01_read_button_triggers_adc)
 {
-    set_ain0_mv(adc_emul_dev, 1500);
+    set_ain0_mv(adc_emul_dev, 300);
     // start_main(500);
 
     k_event_clear(&program_test_events, ADC_READ_TRIGGERED_NOTICE | ADC_READ_COMPLETE_NOTICE);
@@ -592,7 +592,7 @@ ZTEST(adc_single_sample_tests, test_p1_01_read_button_triggers_adc)
     zassert_true(events & ADC_READ_COMPLETE_NOTICE,
         "ADC_READ_COMPLETE_NOTICE never fired (events=0x%x)", events);
 
-    zassert_within(student_adc_mv, 1500, 200, "student_adc_mv mismatch");
+    zassert_within(student_adc_mv, 300, 200, "student_adc_mv mismatch");
 }
 
 
