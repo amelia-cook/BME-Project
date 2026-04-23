@@ -253,7 +253,10 @@ static void set_ain0_mv(const struct device *dev, int millivolts)
     uint32_t raw = (uint32_t)(((uint64_t)millivolts * 4095U) / 600U);
     if (raw > 4095) { raw = 4095; }
 
+    printk("****Setting channel %d to raw %d\n", AIN0_CHANNEL_ID, raw);
+
     int ret = adc_emul_const_value_set(dev, AIN0_CHANNEL_ID, raw);
+    // adc_emul_const_value_set(dev, 0, raw);
     zassert_ok(ret, "set_ain0_mv: const_raw_value_set failed (%d)", ret);
 }
 
