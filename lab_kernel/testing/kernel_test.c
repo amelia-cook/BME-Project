@@ -179,7 +179,7 @@ static void assert_led_duty_cycle(const struct gpio_dt_spec *led,
     ctx.last_state = gpio_emul_output_get(led->port, led->pin);
     ctx.last_ts = k_uptime_get();
 
-    gpio_init_callback(&cb, duty_edge_callback, BIT(led->pin));
+    gpio_init_callback(&cb, led_edge_duty_callback, BIT(led->pin));
 
     int ret = gpio_add_callback_dt(led, &cb);
     zassert_true(ret == 0, "LED %s: callback add failed", name);
