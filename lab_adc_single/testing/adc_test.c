@@ -230,19 +230,31 @@ static int ain0_const_cb(const struct device *dev,
 //     zassert_ok(ret, "set_ain0_mv: adc_emul_value_func_set failed (%d)", ret);
 // }
 
+// static void set_ain0_mv(const struct device *dev, int millivolts)
+// {
+//     if (millivolts < 0)        { millivolts = 0; }
+//     if (millivolts > 3000)     { millivolts = 3000; }  /* effective FS = ref*5 = 3000 mV */
+
+//     /* raw = mv * 4096 / (ref_mv * gain_denom / gain_numer)
+//      *     = mv * 4096 / (600 * 5)
+//      *     = mv * 4096 / 3000                                */
+//     g_ain0_raw_value = (uint32_t)(((uint64_t)millivolts * 4096U) / 3000U);
+//     if (g_ain0_raw_value > 4095) { g_ain0_raw_value = 4095; }
+
+//     int ret = adc_emul_value_func_set(dev, AIN0_CHANNEL_ID, ain0_const_cb, NULL);
+//     zassert_ok(ret, "set_ain0_mv: adc_emul_value_func_set failed (%d)", ret);
+// }
+
 static void set_ain0_mv(const struct device *dev, int millivolts)
 {
-    if (millivolts < 0)        { millivolts = 0; }
-    if (millivolts > 3000)     { millivolts = 3000; }  /* effective FS = ref*5 = 3000 mV */
+    if (millivolts < 0)    { millivolts = 0; }
+    if (millivolts > 3000) { millivolts = 3000; }
 
-    /* raw = mv * 4096 / (ref_mv * gain_denom / gain_numer)
-     *     = mv * 4096 / (600 * 5)
-     *     = mv * 4096 / 3000                                */
-    g_ain0_raw_value = (uint32_t)(((uint64_t)millivolts * 4096U) / 3000U);
-    if (g_ain0_raw_value > 4095) { g_ain0_raw_value = 4095; }
+    uint32_t raw = (uint32_t)(((uint64_t)millivolts * 4096U) / 3000U);
+    if (raw > 4095) { raw = 4095; }
 
-    int ret = adc_emul_value_func_set(dev, AIN0_CHANNEL_ID, ain0_const_cb, NULL);
-    zassert_ok(ret, "set_ain0_mv: adc_emul_value_func_set failed (%d)", ret);
+    int ret = adc_emul_const_raw_value_set(dev, AIN0_CHANNEL_ID, raw);
+    zassert_ok(ret, "set_ain0_mv: const_raw_value_set failed (%d)", ret);
 }
 
 // static void set_ain0_mv(const struct device *dev, int millivolts)

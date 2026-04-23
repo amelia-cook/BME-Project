@@ -73,3 +73,8 @@
 &gpio0 {
     status = "okay";
 };
+
+/* Disable the real ADC so the student's &adc reference doesn't conflict */
+&adc {
+    status = "disabled";
+};
