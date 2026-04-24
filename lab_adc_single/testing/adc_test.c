@@ -245,19 +245,30 @@ static int ain0_const_cb(const struct device *dev,
 //     zassert_ok(ret, "set_ain0_mv: adc_emul_value_func_set failed (%d)", ret);
 // }
 
+// static void set_ain0_mv(const struct device *dev, int millivolts)
+// {
+//     if (millivolts < 0)    { millivolts = 0; }
+//     if (millivolts > 600U) { millivolts = 600; }
+
+//     uint32_t raw = (uint32_t)(((uint64_t)millivolts * 4095U) / 600U);
+//     if (raw > 4095) { raw = 4095; }
+
+//     printk("****Setting channel %d to raw %d\n", AIN0_CHANNEL_ID, raw);
+
+//     int ret = adc_emul_const_value_set(dev, AIN0_CHANNEL_ID, raw);
+//     // adc_emul_const_value_set(dev, 0, raw);
+//     zassert_ok(ret, "set_ain0_mv: const_raw_value_set failed (%d)", ret);
+// }
+
 static void set_ain0_mv(const struct device *dev, int millivolts)
 {
-    if (millivolts < 0)    { millivolts = 0; }
-    if (millivolts > 600U) { millivolts = 600; }
+    if (millivolts < 0)       millivolts = 0;
+    if (millivolts > 3000)    millivolts = 3000;
 
-    uint32_t raw = (uint32_t)(((uint64_t)millivolts * 4095U) / 600U);
-    if (raw > 4095) { raw = 4095; }
+    g_ain0_raw_value = (uint32_t)(((uint64_t)millivolts * 4095U) / 3000U);
 
-    printk("****Setting channel %d to raw %d\n", AIN0_CHANNEL_ID, raw);
-
-    int ret = adc_emul_const_value_set(dev, AIN0_CHANNEL_ID, raw);
-    // adc_emul_const_value_set(dev, 0, raw);
-    zassert_ok(ret, "set_ain0_mv: const_raw_value_set failed (%d)", ret);
+    int ret = adc_emul_value_func_set(dev, AIN0_CHANNEL_ID, ain0_const_cb, NULL);
+    zassert_ok(ret, "adc_emul_value_func_set failed (%d)", ret);
 }
 
 // static void set_ain0_mv(const struct device *dev, int millivolts)
