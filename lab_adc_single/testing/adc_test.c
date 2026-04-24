@@ -271,6 +271,8 @@ static void set_ain0_mv(const struct device *dev, int millivolts)
 
     g_ain0_raw_value = raw;
 
+    printk("****Setting channel %d to raw %d\n", AIN0_CHANNEL_ID, raw);
+
     int ret = adc_emul_value_func_set(dev, AIN0_CHANNEL_ID, ain0_const_cb, NULL);
     zassert_ok(ret, "adc_emul_value_func_set failed (%d)", ret);
 }
@@ -836,38 +838,57 @@ ZTEST(adc_single_sample_tests, test_p1_08_error_on_bad_voltage)
  * student_mapped_freq is monotonically increasing and approximately
  * linear (each step should increase by ~1 Hz).
  */
-ZTEST(adc_single_sample_tests, test_p1_09_linearity_sweep)
-{
-    int voltages_mv[]  = {0, 750, 1500, 2250, 3000};
-    int expected_hz[]  = {1,   2,    3,    4,    5};
-    float prev_freq    = -1.0f;
 
-    k_event_clear(&program_test_events, ADC_READ_TRIGGERED_NOTICE | ADC_READ_COMPLETE_NOTICE);
+ ZTEST(adc_single_sample_tests, test_p1_09_linearity_sweep)
+{
+    int voltages_mv[] = {0, 750, 1500, 2250, 3000};
+    int expected_hz[] = {1, 2, 3, 4, 5};
+
+    float prev_freq = -1.0f;
 
     for (int i = 0; i < 5; i++) {
-        /* Reset to IDLE before each sub-test */
+
+        /* --- Reset system cleanly --- */
         stop_main();
+        k_msleep(50);
+
+        start_main(500);
+
         k_event_clear(&program_test_events,
-            ADC_READ_TRIGGERED_NOTICE | ADC_READ_COMPLETE_NOTICE |
+            ADC_READ_TRIGGERED_NOTICE |
+            ADC_READ_COMPLETE_NOTICE |
             ADC_BLINK_DONE_NOTICE);
 
+        /* --- Inject ADC value --- */
         set_ain0_mv(adc_emul_dev, voltages_mv[i]);
-        // start_main(500);
 
+        /* --- Trigger read --- */
         simulate_button_click(&read_button);
+
+        /* --- Wait for TRIGGERED --- */
         uint32_t events = k_event_wait(&program_test_events,
-                                       ADC_READ_COMPLETE_NOTICE,
-                                       true, K_MSEC(500));
+                                       ADC_READ_TRIGGERED_NOTICE,
+                                       true, K_MSEC(300));
+
+        zassert_true(events & ADC_READ_TRIGGERED_NOTICE,
+            "Sweep[%d]: ADC_READ_TRIGGERED never fired", i);
+
+        /* --- Wait for COMPLETE --- */
+        events = k_event_wait(&program_test_events,
+                              ADC_READ_COMPLETE_NOTICE,
+                              true, K_MSEC(700));
+
         zassert_true(events & ADC_READ_COMPLETE_NOTICE,
             "Sweep[%d]: ADC_READ_COMPLETE never fired", i);
 
-        /* Check monotonically increasing */
+        /* --- Monotonic check --- */
         zassert_true(student_mapped_freq > prev_freq,
-            "Sweep[%d]: freq %f not > prev %f (not monotonic)",
+            "Sweep[%d]: freq %.2f not > prev %.2f",
             i, (double)student_mapped_freq, (double)prev_freq);
+
         prev_freq = student_mapped_freq;
 
-        /* Check approximately correct Hz (±0.75 Hz tolerance) */
+        /* --- Value check (scaled to int) --- */
         zassert_within((int)(student_mapped_freq * 100),
                        expected_hz[i] * 100, 75,
             "Sweep[%d]: expected ~%d Hz, got %.2f Hz",
