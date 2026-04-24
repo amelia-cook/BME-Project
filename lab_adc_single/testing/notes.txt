@@ -1,0 +1,119 @@
+THESE ARE FUNCTIONS I REMOVED FROM THE adc_test.c FILE FOR READABILITY BECAUSE THEY BELONG TO LATER PHASES
+
+/* --- Phase 2/3: differential sine-wave injection ------------------- */
+
+/*
+ * Sine callback context. The adc_emul calls our function once per
+ * sample, in order, so we use a global sample index counter.
+ *
+ * For a differential measurement the emulator is given two channel
+ * callbacks. AIN1 returns +sin, AIN2 returns -sin (anti-phase), so
+ * the differential result buf[i] = AIN1[i] - AIN2[i] = 2*sin(...).
+ * The student's calc_cycles counts negative→positive zero crossings
+ * of the raw differential buffer, so we simply drive AIN1 = +sin
+ * and AIN2 = 0 (or constant) — the differential will track the sine.
+ *
+ * Simpler and avoids dependency on how the emulator combines channels:
+ * drive AIN1 with the full sine, AIN2 constant at 0, so the student's
+ * diff read gives the sine directly.
+ */
+
+static volatile uint32_t g_sine_sample_idx;
+
+static int ain1_sine_cb(const struct device *dev,
+                        unsigned int chan,
+                        void *data,
+                        uint32_t *result)
+{
+    ARG_UNUSED(dev);
+    ARG_UNUSED(chan);
+    ARG_UNUSED(data);
+
+    /* 
+     * Convert sample index to time:
+     *   t_us = idx * sample_interval_us
+     * Then compute sin(2π * freq * t_us / 1e6).
+     * Scale to [0, 2*amplitude] (unsigned raw ADC counts, midpoint = amplitude).
+     */
+    float t_s = (float)g_sine_sample_idx * (float)g_sine_ain1.sample_interval_us
+                / 1000000.0f;
+    float sine_val = sinf(2.0f * M_PI * (float)g_sine_ain1.freq_hz * t_s);
+
+    /* Map [-1,1] → [0, 2*amplitude], midpoint = amplitude */
+    int32_t raw = (int32_t)(g_sine_ain1.amplitude_raw * sine_val)
+                  + g_sine_ain1.amplitude_raw;
+
+    if (raw < 0)    { raw = 0; }
+    if (raw > 4095) { raw = 4095; }
+
+    *result = (uint32_t)raw;
+
+    /* Advance index (both channels share the same counter; AIN1 is read first) */
+    g_sine_sample_idx++;
+    return 0;
+}
+
+static int ain2_const_zero_cb(const struct device *dev,
+                              unsigned int chan,
+                              void *data,
+                              uint32_t *result)
+{
+    ARG_UNUSED(dev);
+    ARG_UNUSED(chan);
+    ARG_UNUSED(data);
+    /*
+     * Drive AIN2 at midpoint (amplitude_raw) so the differential
+     * result buf[i] = AIN1[i] - AIN2[i] oscillates symmetrically
+     * around zero, giving clean zero crossings for calc_cycles.
+     */
+    *result = (uint32_t)g_sine_ain1.amplitude_raw;
+    return 0;
+}
+
+static void set_differential_sine(const struct device *dev,
+                                  int freq_hz,
+                                  int amplitude_raw,
+                                  int sample_iv_us)
+{
+    g_sine_ain1.freq_hz          = freq_hz;
+    g_sine_ain1.amplitude_raw    = amplitude_raw;
+    g_sine_ain1.sample_interval_us = sample_iv_us;
+    g_sine_sample_idx            = 0;
+
+    int ret;
+    ret = adc_emul_value_func_set(dev, AIN1_CHANNEL_ID, ain1_sine_cb, NULL);
+    zassert_ok(ret, "set_differential_sine: AIN1 func_set failed (%d)", ret);
+
+    ret = adc_emul_value_func_set(dev, AIN2_CHANNEL_ID, ain2_const_zero_cb, NULL);
+    zassert_ok(ret, "set_differential_sine: AIN2 func_set failed (%d)", ret);
+}
+
+/*
+ * assert_cycles_computed — wait for ADC_CYCLES_COMPUTED_NOTICE then
+ * check student_calc_cycles_result.
+ *
+ * Expected value derivation:
+ *   window = BUFFER_ARRAY_LEN * SAMPLE_INTERVAL_us / 1e6  seconds
+ *   cycles = freq_hz * window
+ *   e.g. 10 Hz * (800 * 2500e-6 s) = 10 * 2.0 = 20 cycles
+ */
+ 
+static void assert_cycles_computed(int expected_cycles, int tolerance)
+{
+    /*
+     * Acquisition takes BUFFER_ARRAY_LEN * SAMPLE_INTERVAL µs ≈ 2 s.
+     * Add 500 ms margin.
+     */
+    int timeout_ms = (BUFFER_ARRAY_LEN * 2500) / 1000 + 500;
+
+    uint32_t events = k_event_wait(&program_test_events,
+                                   ADC_CYCLES_COMPUTED_NOTICE,
+                                   true,
+                                   K_MSEC(timeout_ms));
+    zassert_true(events & ADC_CYCLES_COMPUTED_NOTICE,
+        "ADC_CYCLES_COMPUTED_NOTICE never fired (timeout %d ms)", timeout_ms);
+
+    zassert_within(student_calc_cycles_result, expected_cycles, tolerance,
+        "calc_cycles: expected ~%d but got %d",
+        expected_cycles, student_calc_cycles_result);
+}

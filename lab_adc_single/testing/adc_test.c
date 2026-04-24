@@ -200,180 +200,15 @@ static void assert_led_on(const struct gpio_dt_spec *led, const char *led_name)
 
 /* --- Phase 1: constant AIN0 voltage -------------------------------- */
 
-static uint32_t g_ain0_raw_value;
-
-static int ain0_const_cb(const struct device *dev,
-                         unsigned int chan,
-                         void *data,
-                         uint32_t *result)
-{
-    ARG_UNUSED(dev);
-    ARG_UNUSED(chan);
-    ARG_UNUSED(data);
-    *result = g_ain0_raw_value;
-    return 0;
-}
-
-/*
- * set_ain0_mv — inject a constant millivolt value on AIN0.
- *
- * The emulator's ref-internal-mv = 3000, resolution = 12 bits.
- * raw = (mv / 3000) * 4095   (clamped to [0, 4095])
- */
-// static void set_ain0_mv(const struct device *dev, int millivolts)
-// {
-//     if (millivolts < 0)       { millivolts = 0; }
-//     if (millivolts > MAX_V_MV){ millivolts = MAX_V_MV; }
-
-//     g_ain0_raw_value = (uint32_t)(((uint64_t)millivolts * 4095U) / MAX_V_MV);
-//     int ret = adc_emul_value_func_set(dev, AIN0_CHANNEL_ID, ain0_const_cb, NULL);
-//     zassert_ok(ret, "set_ain0_mv: adc_emul_value_func_set failed (%d)", ret);
-// }
-
-// static void set_ain0_mv(const struct device *dev, int millivolts)
-// {
-//     if (millivolts < 0)        { millivolts = 0; }
-//     if (millivolts > 3000)     { millivolts = 3000; }  /* effective FS = ref*5 = 3000 mV */
-
-//     /* raw = mv * 4096 / (ref_mv * gain_denom / gain_numer)
-//      *     = mv * 4096 / (600 * 5)
-//      *     = mv * 4096 / 3000                                */
-//     g_ain0_raw_value = (uint32_t)(((uint64_t)millivolts * 4096U) / 3000U);
-//     if (g_ain0_raw_value > 4095) { g_ain0_raw_value = 4095; }
-
-//     int ret = adc_emul_value_func_set(dev, AIN0_CHANNEL_ID, ain0_const_cb, NULL);
-//     zassert_ok(ret, "set_ain0_mv: adc_emul_value_func_set failed (%d)", ret);
-// }
-
-// static void set_ain0_mv(const struct device *dev, int millivolts)
-// {
-//     if (millivolts < 0)    { millivolts = 0; }
-//     if (millivolts > 600U) { millivolts = 600; }
-
-//     uint32_t raw = (uint32_t)(((uint64_t)millivolts * 4095U) / 600U);
-//     if (raw > 4095) { raw = 4095; }
-
-//     printk("****Setting channel %d to raw %d\n", AIN0_CHANNEL_ID, raw);
-
-//     int ret = adc_emul_const_value_set(dev, AIN0_CHANNEL_ID, raw);
-//     // adc_emul_const_value_set(dev, 0, raw);
-//     zassert_ok(ret, "set_ain0_mv: const_raw_value_set failed (%d)", ret);
-// }
-
 static void set_ain0_mv(const struct device *dev, int millivolts)
 {
-    // if (millivolts < 0)    millivolts = 0;
-    // if (millivolts > 3000) millivolts = 3000;  // effective full-scale
-
-    // uint32_t raw = (uint32_t)(((uint64_t)millivolts * 4096U * 5U) / 600U);
-
-    // if (raw > 4095) raw = 4095;
-
-    // g_ain0_raw_value = raw;
-    
     int ret = adc_emul_const_value_set(dev, AIN0_CHANNEL_ID, millivolts);
 
     // int ret = adc_emul_value_func_set(dev, AIN0_CHANNEL_ID, ain0_const_cb, NULL);
     zassert_ok(ret, "adc_emul_value_func_set failed (%d)", ret);
 }
 
-// static void set_ain0_mv(const struct device *dev, int millivolts)
-// {
-//     #define EFFECTIVE_FS_MV  900
-
-//     if (millivolts < 0)             { millivolts = 0; }
-//     if (millivolts > EFFECTIVE_FS_MV){ millivolts = EFFECTIVE_FS_MV; }
-
-//     // OLD (assumes GAIN_1):
-//     // g_ain0_raw_value = (uint32_t)(((uint64_t)millivolts * 4095U) / MAX_V_MV);
-
-//     // NEW (accounts for ADC_GAIN_1_5 in student's channel config):
-//     // g_ain0_raw_value = (uint32_t)(((uint64_t)millivolts * 4095U * 3U) / (MAX_V_MV * 2U));
-
-//     // int ret = adc_emul_value_func_set(dev, AIN0_CHANNEL_ID, ain0_const_cb, NULL);
-//     // zassert_ok(ret, "set_ain0_mv: adc_emul_value_func_set failed (%d)", ret);
-
-//     g_ain0_raw_value = (uint32_t)(((uint64_t)millivolts * 4095U) / EFFECTIVE_FS_MV);
-
-//     int ret = adc_emul_value_func_set(dev, AIN0_CHANNEL_ID, ain0_const_cb, NULL);
-//     zassert_ok(ret, "set_ain0_mv: adc_emul_value_func_set failed (%d)", ret);
-// }
-
 /* --- Phase 1: duty-cycle measurement ------------------------------- */
-
-/*
- * assert_blinker_freq / assert_blink_ontime_pct / assert_blink_total_duration_ms
- * all wrap the LED helpers specifically for the blinker_led.
- */
-static void assert_blinker_freq(int window_ms, int expected_hz, int tolerance_hz)
-{
-    assert_led_blink_freq(&blinker_led, window_ms,
-                          expected_hz, tolerance_hz, "blinker");
-}
-
-// /*
-//  * Duty-cycle measurement using edge timestamps.
-//  * Counts total high-time across window_ms then computes percentage.
-//  *
-//  * Implementation note: a pair of callbacks (rising / falling) are
-//  * registered, each recording k_uptime_get() at the edge. High-time
-//  * is accumulated between rising→falling pairs.
-//  */
-// static volatile int64_t g_rise_time_ms;
-// static volatile int64_t g_high_time_accum_ms;
-// static volatile bool    g_currently_high;
-
-// static void blinker_rise_cb(const struct device *dev,
-//                             struct gpio_callback *cb,
-//                             uint32_t pins)
-// {
-//     g_rise_time_ms    = k_uptime_get();
-//     g_currently_high  = true;
-// }
-
-// static void blinker_fall_cb(const struct device *dev,
-//                             struct gpio_callback *cb,
-//                             uint32_t pins)
-// {
-//     if (g_currently_high) {
-//         g_high_time_accum_ms += k_uptime_get() - g_rise_time_ms;
-//         g_currently_high = false;
-//     }
-// }
-
-// static void assert_blink_ontime_pct(int window_ms, int expected_pct,
-//                                     int tolerance_pct)
-// {
-//     g_high_time_accum_ms = 0;
-//     g_currently_high     = false;
-
-//     struct gpio_callback rise_cb, fall_cb;
-
-//     /* Two separate callbacks: one per edge polarity */
-//     gpio_init_callback(&rise_cb, blinker_rise_cb, BIT(blinker_led.pin));
-//     gpio_init_callback(&fall_cb, blinker_fall_cb, BIT(blinker_led.pin));
-
-//     int ret;
-//     ret = gpio_add_callback_dt(&blinker_led, &rise_cb);
-//     zassert_ok(ret, "duty: add rise cb failed");
-//     ret = gpio_add_callback_dt(&blinker_led, &fall_cb);
-//     zassert_ok(ret, "duty: add fall cb failed");
-
-//     ret = gpio_pin_interrupt_configure_dt(&blinker_led, GPIO_INT_EDGE_BOTH);
-//     zassert_ok(ret, "duty: configure interrupt failed");
-
-//     k_msleep(window_ms);
-
-//     gpio_pin_interrupt_configure_dt(&blinker_led, GPIO_INT_DISABLE);
-//     gpio_remove_callback_dt(&blinker_led, &rise_cb);
-//     gpio_remove_callback_dt(&blinker_led, &fall_cb);
-
-//     int measured_pct = (int)((g_high_time_accum_ms * 100) / window_ms);
-
-//     zassert_within(measured_pct, expected_pct, tolerance_pct,
-//         "blinker duty cycle: expected ~%d%% but measured ~%d%%",
-//         expected_pct, measured_pct);
-// }
 
 static void led_edge_duty_callback(const struct device *dev,
                               struct gpio_callback *cb,
@@ -391,9 +226,7 @@ static void led_edge_duty_callback(const struct device *dev,
     ctx.last_ts = now;
 }
 
-static void assert_blink_ontime_pct(const struct gpio_dt_spec *led,
-                                  const char *name,
-                                  int window_ms,
+static void assert_blink_ontime_pct(int window_ms,
                                   int expected_duty,
                                   int tolerance)
 {
@@ -481,168 +314,9 @@ static void assert_blink_total_duration_ms(int expected_ms, int tolerance_ms)
         expected_ms, (int)measured_ms);
 }
 
-/* --- Phase 2/3: differential sine-wave injection ------------------- */
-
-/*
- * Sine callback context. The adc_emul calls our function once per
- * sample, in order, so we use a global sample index counter.
- *
- * For a differential measurement the emulator is given two channel
- * callbacks. AIN1 returns +sin, AIN2 returns -sin (anti-phase), so
- * the differential result buf[i] = AIN1[i] - AIN2[i] = 2*sin(...).
- * The student's calc_cycles counts negative→positive zero crossings
- * of the raw differential buffer, so we simply drive AIN1 = +sin
- * and AIN2 = 0 (or constant) — the differential will track the sine.
- *
- * Simpler and avoids dependency on how the emulator combines channels:
- * drive AIN1 with the full sine, AIN2 constant at 0, so the student's
- * diff read gives the sine directly.
- */
-
-static volatile uint32_t g_sine_sample_idx;
-
-static int ain1_sine_cb(const struct device *dev,
-                        unsigned int chan,
-                        void *data,
-                        uint32_t *result)
-{
-    ARG_UNUSED(dev);
-    ARG_UNUSED(chan);
-    ARG_UNUSED(data);
-
-    /* 
-     * Convert sample index to time:
-     *   t_us = idx * sample_interval_us
-     * Then compute sin(2π * freq * t_us / 1e6).
-     * Scale to [0, 2*amplitude] (unsigned raw ADC counts, midpoint = amplitude).
-     */
-    float t_s = (float)g_sine_sample_idx * (float)g_sine_ain1.sample_interval_us
-                / 1000000.0f;
-    float sine_val = sinf(2.0f * M_PI * (float)g_sine_ain1.freq_hz * t_s);
-
-    /* Map [-1,1] → [0, 2*amplitude], midpoint = amplitude */
-    int32_t raw = (int32_t)(g_sine_ain1.amplitude_raw * sine_val)
-                  + g_sine_ain1.amplitude_raw;
-
-    if (raw < 0)    { raw = 0; }
-    if (raw > 4095) { raw = 4095; }
-
-    *result = (uint32_t)raw;
-
-    /* Advance index (both channels share the same counter; AIN1 is read first) */
-    g_sine_sample_idx++;
-    return 0;
-}
-
-static int ain2_const_zero_cb(const struct device *dev,
-                              unsigned int chan,
-                              void *data,
-                              uint32_t *result)
-{
-    ARG_UNUSED(dev);
-    ARG_UNUSED(chan);
-    ARG_UNUSED(data);
-    /*
-     * Drive AIN2 at midpoint (amplitude_raw) so the differential
-     * result buf[i] = AIN1[i] - AIN2[i] oscillates symmetrically
-     * around zero, giving clean zero crossings for calc_cycles.
-     */
-    *result = (uint32_t)g_sine_ain1.amplitude_raw;
-    return 0;
-}
-
-static void set_differential_sine(const struct device *dev,
-                                  int freq_hz,
-                                  int amplitude_raw,
-                                  int sample_iv_us)
-{
-    g_sine_ain1.freq_hz          = freq_hz;
-    g_sine_ain1.amplitude_raw    = amplitude_raw;
-    g_sine_ain1.sample_interval_us = sample_iv_us;
-    g_sine_sample_idx            = 0;
-
-    int ret;
-    ret = adc_emul_value_func_set(dev, AIN1_CHANNEL_ID, ain1_sine_cb, NULL);
-    zassert_ok(ret, "set_differential_sine: AIN1 func_set failed (%d)", ret);
-
-    ret = adc_emul_value_func_set(dev, AIN2_CHANNEL_ID, ain2_const_zero_cb, NULL);
-    zassert_ok(ret, "set_differential_sine: AIN2 func_set failed (%d)", ret);
-}
-
-/*
- * assert_cycles_computed — wait for ADC_CYCLES_COMPUTED_NOTICE then
- * check student_calc_cycles_result.
- *
- * Expected value derivation:
- *   window = BUFFER_ARRAY_LEN * SAMPLE_INTERVAL_us / 1e6  seconds
- *   cycles = freq_hz * window
- *   e.g. 10 Hz * (800 * 2500e-6 s) = 10 * 2.0 = 20 cycles
- */
- 
-static void assert_cycles_computed(int expected_cycles, int tolerance)
-{
-    /*
-     * Acquisition takes BUFFER_ARRAY_LEN * SAMPLE_INTERVAL µs ≈ 2 s.
-     * Add 500 ms margin.
-     */
-    int timeout_ms = (BUFFER_ARRAY_LEN * 2500) / 1000 + 500;
-
-    uint32_t events = k_event_wait(&program_test_events,
-                                   ADC_CYCLES_COMPUTED_NOTICE,
-                                   true,
-                                   K_MSEC(timeout_ms));
-    zassert_true(events & ADC_CYCLES_COMPUTED_NOTICE,
-        "ADC_CYCLES_COMPUTED_NOTICE never fired (timeout %d ms)", timeout_ms);
-
-    zassert_within(student_calc_cycles_result, expected_cycles, tolerance,
-        "calc_cycles: expected ~%d but got %d",
-        expected_cycles, student_calc_cycles_result);
-}
-
 /* ================================================================== */
 /*  PHASE 1 TESTS — adc_single_sample_tests                          */
 /* ================================================================== */
-
-/*
- * Press read_button with a known voltage and verify both
- * ADC_READ_TRIGGERED and ADC_READ_COMPLETE notices fire.
- */
-// ZTEST(adc_single_sample_tests, test_p1_01_read_button_triggers_adc)
-// {
-//     set_ain0_mv(adc_emul_dev, 1500);
-//     start_main(500);
-
-//     simulate_button_click(&read_button);
-
-//     uint32_t events = k_event_wait(&program_test_events,
-//                                    ADC_READ_TRIGGERED_NOTICE,
-//                                    true, K_MSEC(300));
-//     zassert_true(events & ADC_READ_TRIGGERED_NOTICE,
-//         "ADC_READ_TRIGGERED_NOTICE never fired after read_button press");
-
-//     events = k_event_wait(&program_test_events,
-//                           ADC_READ_COMPLETE_NOTICE,
-//                           true, K_MSEC(500));
-//     zassert_true(events & ADC_READ_COMPLETE_NOTICE,
-//         "ADC_READ_COMPLETE_NOTICE never fired");
-
-//     /* Sanity-check the reported millivolts */
-//     zassert_within(student_adc_mv, 1500, 200,
-//         "student_adc_mv: expected ~1500 mV but got %d", student_adc_mv);
-// }
-
-// ZTEST(adc_single_sample_tests, test_p1_00_read_button_triggers_adc){
-//     set_ain0_mv(adc_emul_dev, 1500);
-//     // start_main(500);
-//     k_msleep(1000);
-//     simulate_button_click(&read_button);
-//     zassert_true(wait_for_event(ADC_READ_TRIGGERED_NOTICE, 500),
-//         "ADC_READ_TRIGGERED_NOTICE never fired after read_button press");
-//     zassert_true(wait_for_event(ADC_READ_COMPLETE_NOTICE, 800),
-//         "ADC_READ_COMPLETE_NOTICE never fired");
-//     zassert_within(student_adc_mv, 1500, 200,
-//         "student_adc_mv mismatch");
-// }
 
 
 ZTEST(adc_single_sample_tests, test_p1_01_read_button_triggers_adc)
@@ -696,7 +370,9 @@ ZTEST(adc_single_sample_tests, test_p1_02_zero_volts_maps_to_1hz)
         "ADC_READ_COMPLETE_NOTICE never fired");
 
     /* Measure over 3 s window — enough for several 1 Hz cycles */
-    assert_blinker_freq(3000, 1, 1);
+    // assert_blinker_freq(3000, 1, 1);
+    assert_led_blink_freq(&blinker_led, 3000,
+                          1, 1, "blinker");
     assert_led_blink_freq(&heartbeat_led, 2000, 1, 1, "heartbeat");
 }
 
@@ -717,7 +393,9 @@ ZTEST(adc_single_sample_tests, test_p1_03_full_volts_maps_to_5hz)
     zassert_true(wait_for_event(ADC_READ_COMPLETE_NOTICE, 800),
         "ADC_READ_COMPLETE_NOTICE never fired");
 
-    assert_blinker_freq(2000, 5, 1);
+    // assert_blinker_freq(2000, 5, 1);
+    assert_led_blink_freq(&blinker_led, 2000,
+                          5, 1, "blinker");
 }
 
 /*
@@ -735,7 +413,9 @@ ZTEST(adc_single_sample_tests, test_p1_04_mid_volts_maps_to_3hz)
     zassert_true(wait_for_event(ADC_READ_COMPLETE_NOTICE, 800),
         "ADC_READ_COMPLETE_NOTICE never fired");
 
-    assert_blinker_freq(2000, 3, 1);
+    // assert_blinker_freq(2000, 3, 1);
+    assert_led_blink_freq(&blinker_led, 2000,
+                          3, 1, "blinker");
 }
 
 /*

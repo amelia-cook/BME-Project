@@ -148,8 +148,8 @@ static void set_differential_sine(const struct device *adc_emul_dev,
 /*
  * assert_blinker_freq() — convenience wrapper for blinker_led.
  */
-static void assert_blinker_freq(int window_ms, int expected_hz,
-                                 int tolerance_hz);
+// static void assert_blinker_freq(int window_ms, int expected_hz,
+//                                  int tolerance_hz);
 
 /*
  * assert_blink_ontime_pct() — verify blinker_led duty cycle.
