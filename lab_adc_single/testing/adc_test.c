@@ -384,7 +384,7 @@ ZTEST(adc_single_sample_tests, test_p1_02_zero_volts_maps_to_1hz)
  */
 ZTEST(adc_single_sample_tests, test_p1_03_full_volts_maps_to_5hz)
 {
-    set_ain0_mv(adc_emul_dev, 3000);
+    set_ain0_mv(adc_emul_dev, 2985);
     // start_main(500);
     k_event_clear(&program_test_events, ADC_READ_TRIGGERED_NOTICE | ADC_READ_COMPLETE_NOTICE);
 
