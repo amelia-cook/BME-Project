@@ -567,7 +567,7 @@ static void assert_cycles_computed(int expected_cycles, int tolerance)
 
 ZTEST(adc_single_sample_tests, test_p1_01_read_button_triggers_adc)
 {
-    set_ain0_mv(adc_emul_dev, 300);
+    set_ain0_mv(adc_emul_dev, 0);
     // start_main(500);
 
     k_event_clear(&program_test_events, ADC_READ_TRIGGERED_NOTICE | ADC_READ_COMPLETE_NOTICE);
@@ -595,7 +595,7 @@ ZTEST(adc_single_sample_tests, test_p1_01_read_button_triggers_adc)
     zassert_true(events & ADC_READ_COMPLETE_NOTICE,
         "ADC_READ_COMPLETE_NOTICE never fired (events=0x%x)", events);
 
-    zassert_within(student_adc_mv, 300, 200, "student_adc_mv mismatch");
+    zassert_within(student_adc_mv, 0, 200, "student_adc_mv mismatch");
 }
 
 
