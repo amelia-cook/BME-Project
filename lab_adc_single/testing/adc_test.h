@@ -176,4 +176,18 @@ static void assert_blink_total_duration_ms(int expected_ms, int tolerance_ms);
 static void assert_cycles_computed(int expected_cycles, int tolerance);
 static bool wait_for_event(uint32_t mask, int timeout_ms);
 
+
+
+
+struct duty_ctx {
+    const struct gpio_dt_spec *led;
+
+    int64_t last_ts;
+    bool last_state;
+
+    int64_t on_time;
+    int64_t total_time;
+};
+static struct duty_ctx ctx;
+
 #endif /* ADC_TEST_H */

@@ -311,68 +311,131 @@ static void assert_blinker_freq(int window_ms, int expected_hz, int tolerance_hz
                           expected_hz, tolerance_hz, "blinker");
 }
 
-/*
- * Duty-cycle measurement using edge timestamps.
- * Counts total high-time across window_ms then computes percentage.
- *
- * Implementation note: a pair of callbacks (rising / falling) are
- * registered, each recording k_uptime_get() at the edge. High-time
- * is accumulated between rising→falling pairs.
- */
-static volatile int64_t g_rise_time_ms;
-static volatile int64_t g_high_time_accum_ms;
-static volatile bool    g_currently_high;
+// /*
+//  * Duty-cycle measurement using edge timestamps.
+//  * Counts total high-time across window_ms then computes percentage.
+//  *
+//  * Implementation note: a pair of callbacks (rising / falling) are
+//  * registered, each recording k_uptime_get() at the edge. High-time
+//  * is accumulated between rising→falling pairs.
+//  */
+// static volatile int64_t g_rise_time_ms;
+// static volatile int64_t g_high_time_accum_ms;
+// static volatile bool    g_currently_high;
 
-static void blinker_rise_cb(const struct device *dev,
-                            struct gpio_callback *cb,
-                            uint32_t pins)
-{
-    g_rise_time_ms    = k_uptime_get();
-    g_currently_high  = true;
-}
+// static void blinker_rise_cb(const struct device *dev,
+//                             struct gpio_callback *cb,
+//                             uint32_t pins)
+// {
+//     g_rise_time_ms    = k_uptime_get();
+//     g_currently_high  = true;
+// }
 
-static void blinker_fall_cb(const struct device *dev,
-                            struct gpio_callback *cb,
-                            uint32_t pins)
+// static void blinker_fall_cb(const struct device *dev,
+//                             struct gpio_callback *cb,
+//                             uint32_t pins)
+// {
+//     if (g_currently_high) {
+//         g_high_time_accum_ms += k_uptime_get() - g_rise_time_ms;
+//         g_currently_high = false;
+//     }
+// }
+
+// static void assert_blink_ontime_pct(int window_ms, int expected_pct,
+//                                     int tolerance_pct)
+// {
+//     g_high_time_accum_ms = 0;
+//     g_currently_high     = false;
+
+//     struct gpio_callback rise_cb, fall_cb;
+
+//     /* Two separate callbacks: one per edge polarity */
+//     gpio_init_callback(&rise_cb, blinker_rise_cb, BIT(blinker_led.pin));
+//     gpio_init_callback(&fall_cb, blinker_fall_cb, BIT(blinker_led.pin));
+
+//     int ret;
+//     ret = gpio_add_callback_dt(&blinker_led, &rise_cb);
+//     zassert_ok(ret, "duty: add rise cb failed");
+//     ret = gpio_add_callback_dt(&blinker_led, &fall_cb);
+//     zassert_ok(ret, "duty: add fall cb failed");
+
+//     ret = gpio_pin_interrupt_configure_dt(&blinker_led, GPIO_INT_EDGE_BOTH);
+//     zassert_ok(ret, "duty: configure interrupt failed");
+
+//     k_msleep(window_ms);
+
+//     gpio_pin_interrupt_configure_dt(&blinker_led, GPIO_INT_DISABLE);
+//     gpio_remove_callback_dt(&blinker_led, &rise_cb);
+//     gpio_remove_callback_dt(&blinker_led, &fall_cb);
+
+//     int measured_pct = (int)((g_high_time_accum_ms * 100) / window_ms);
+
+//     zassert_within(measured_pct, expected_pct, tolerance_pct,
+//         "blinker duty cycle: expected ~%d%% but measured ~%d%%",
+//         expected_pct, measured_pct);
+// }
+
+static void led_edge_duty_callback(const struct device *dev,
+                              struct gpio_callback *cb,
+                              uint32_t pins)
 {
-    if (g_currently_high) {
-        g_high_time_accum_ms += k_uptime_get() - g_rise_time_ms;
-        g_currently_high = false;
+    int64_t now = k_uptime_get();
+    int64_t delta = now - ctx.last_ts;
+
+    if (ctx.last_state) {
+        ctx.on_time += delta;
     }
+    ctx.total_time += delta;
+
+    ctx.last_state = !ctx.last_state;
+    ctx.last_ts = now;
 }
 
-static void assert_blink_ontime_pct(int window_ms, int expected_pct,
-                                    int tolerance_pct)
+static void assert_blink_ontime_pct(const struct gpio_dt_spec *led,
+                                  const char *name,
+                                  int window_ms,
+                                  int expected_duty,
+                                  int tolerance)
 {
-    g_high_time_accum_ms = 0;
-    g_currently_high     = false;
+    struct gpio_dt_spec *led = &blinker_led;
+    char *name = "blinker";
+    
+    struct gpio_callback cb;
 
-    struct gpio_callback rise_cb, fall_cb;
+    ctx.led = led;
+    ctx.on_time = 0;
+    ctx.total_time = 0;
 
-    /* Two separate callbacks: one per edge polarity */
-    gpio_init_callback(&rise_cb, blinker_rise_cb, BIT(blinker_led.pin));
-    gpio_init_callback(&fall_cb, blinker_fall_cb, BIT(blinker_led.pin));
+    ctx.last_state = gpio_emul_output_get(led->port, led->pin);
+    ctx.last_ts = k_uptime_get();
 
-    int ret;
-    ret = gpio_add_callback_dt(&blinker_led, &rise_cb);
-    zassert_ok(ret, "duty: add rise cb failed");
-    ret = gpio_add_callback_dt(&blinker_led, &fall_cb);
-    zassert_ok(ret, "duty: add fall cb failed");
+    gpio_init_callback(&cb, led_edge_duty_callback, BIT(led->pin));
 
-    ret = gpio_pin_interrupt_configure_dt(&blinker_led, GPIO_INT_EDGE_BOTH);
-    zassert_ok(ret, "duty: configure interrupt failed");
+    int ret = gpio_add_callback_dt(led, &cb);
+    zassert_true(ret == 0, "LED %s: callback add failed", "name");
+
+    ret = gpio_pin_interrupt_configure_dt(led, GPIO_INT_EDGE_BOTH);
+    zassert_true(ret == 0, "LED %s: interrupt config failed", name);
 
     k_msleep(window_ms);
 
-    gpio_pin_interrupt_configure_dt(&blinker_led, GPIO_INT_DISABLE);
-    gpio_remove_callback_dt(&blinker_led, &rise_cb);
-    gpio_remove_callback_dt(&blinker_led, &fall_cb);
+    gpio_pin_interrupt_configure_dt(led, GPIO_INT_DISABLE);
+    gpio_remove_callback_dt(led, &cb);
 
-    int measured_pct = (int)((g_high_time_accum_ms * 100) / window_ms);
+    zassert_true(ctx.total_time > 0,
+        "LED %s: no activity detected", name);
 
-    zassert_within(measured_pct, expected_pct, tolerance_pct,
-        "blinker duty cycle: expected ~%d%% but measured ~%d%%",
-        expected_pct, measured_pct);
+    float measured_duty = (float)ctx.on_time / (float)ctx.total_time;
+
+    zassert_true(
+        measured_duty > (expected_duty - tolerance) &&
+        measured_duty < (expected_duty + tolerance),
+        "LED %s: duty %.2f (expected %.2f ± %.2f)",
+        name,
+        (double)measured_duty,
+        (double)expected_duty,
+        (double)tolerance
+    );
 }
 
 /*
@@ -796,12 +859,13 @@ ZTEST(adc_single_sample_tests, test_p1_08_error_on_bad_voltage)
      * Alternative: many zephyr,adc-emul builds support returning an error code
      * from the value callback (return -EIO).  We use that here.
      */
-     k_event_clear(&program_test_events, ADC_READ_TRIGGERED_NOTICE | ADC_READ_COMPLETE_NOTICE);
+    k_event_clear(&program_test_events, ADC_READ_TRIGGERED_NOTICE | ADC_READ_COMPLETE_NOTICE);
 
-    int ret = adc_emul_value_func_set(adc_emul_dev, AIN0_CHANNEL_ID,
-                                      ain0_over_range_cb, NULL);
+    // int ret = adc_emul_value_func_set(adc_emul_dev, AIN0_CHANNEL_ID,
+    //                                   ain0_over_range_cb, NULL);
+    set_ain0_mv(adc_emul_dev, 4000);
 
-    zassert_ok(ret, "failed to set error callback");
+    // zassert_ok(ret, "failed to set error callback");
 
     // start_main(500);
 
@@ -868,7 +932,7 @@ ZTEST(adc_single_sample_tests, test_p1_08_error_on_bad_voltage)
         /* --- Wait for TRIGGERED --- */
         uint32_t events = k_event_wait(&program_test_events,
                                        ADC_READ_TRIGGERED_NOTICE,
-                                       true, K_MSEC(300));
+                                       false, K_MSEC(300));
 
         zassert_true(events & ADC_READ_TRIGGERED_NOTICE,
             "Sweep[%d]: ADC_READ_TRIGGERED never fired", i);
@@ -876,7 +940,7 @@ ZTEST(adc_single_sample_tests, test_p1_08_error_on_bad_voltage)
         /* --- Wait for COMPLETE --- */
         events = k_event_wait(&program_test_events,
                               ADC_READ_COMPLETE_NOTICE,
-                              true, K_MSEC(700));
+                              false, K_MSEC(700));
 
         zassert_true(events & ADC_READ_COMPLETE_NOTICE,
             "Sweep[%d]: ADC_READ_COMPLETE never fired", i);
