@@ -483,8 +483,6 @@ static void reading_run(void *o) {
         smf_set_state(SMF_CTX(&s_context), &states[BLINKING]);
         // ADC_READ_COMPLETE(val_mv, s_context.freq);
     }
-    
-
 }
 
 static void reading_exit(void *o) {
