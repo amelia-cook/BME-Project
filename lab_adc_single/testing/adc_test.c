@@ -544,7 +544,7 @@ ZTEST(adc_single_sample_tests, test_p1_08_error_on_bad_voltage)
 
     // int ret = adc_emul_value_func_set(adc_emul_dev, AIN0_CHANNEL_ID,
     //                                   ain0_over_range_cb, NULL);
-    set_ain0_mv(adc_emul_dev, 4000);
+    set_ain0_mv(adc_emul_dev, 15000);
 
     // zassert_ok(ret, "failed to set error callback");
 
