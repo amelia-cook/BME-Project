@@ -17,7 +17,7 @@ LOG_MODULE_REGISTER(main, LOG_LEVEL_DBG);
 #define MAX_FREQ_HZ                     5
 #define MIN_FREQ_HZ                     1
 #define MIN_V_MV                        0
-#define MAX_V_MV                        3000
+#define MAX_V_MV                        2990
 #define READ_EVENT                      BIT(0)
 #define SLEEP_EVENT                     BIT(1)
 #define TIMER_COMPLETE_EVENT            BIT(2)
@@ -469,7 +469,7 @@ static void reading_run(void *o) {
         // printk(">>> program_test_events bits after READ_COMPLETE:");
         printk(">>> program_test_events bits after READ_COMPLETE: 0x%08x\n", program_test_events.events);
         k_yield();
-        printk(">>> After k_yield, continuing to smf_set_state\n");
+        printk(">>> After k_yield, continuing to ERROR\n");
 
         smf_set_state(SMF_CTX(&s_context), &states[ERROR]);
         return;
@@ -478,7 +478,7 @@ static void reading_run(void *o) {
         ADC_READ_COMPLETE(s_context.millivolts, s_context.freq);
         printk(">>> program_test_events bits after READ_COMPLETE:");
         k_yield();
-        printk(">>> After k_yield, continuing to smf_set_state\n");
+        printk(">>> After k_yield, continuing to BLINKING\n");
 
         smf_set_state(SMF_CTX(&s_context), &states[BLINKING]);
         // ADC_READ_COMPLETE(val_mv, s_context.freq);
