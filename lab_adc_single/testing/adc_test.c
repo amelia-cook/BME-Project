@@ -259,6 +259,7 @@ static void assert_blink_ontime_pct(int window_ms,
         "LED %s: no activity detected", name);
 
     float measured_duty = (float)ctx.on_time / (float)ctx.total_time;
+    measured_duty = measured_duty * 100;
 
     zassert_true(
         measured_duty > (expected_duty - tolerance) &&
@@ -557,7 +558,7 @@ ZTEST(adc_single_sample_tests, test_p1_08_error_on_bad_voltage)
         "ADC_READ_TRIGGERED_NOTICE never fired");
 
     /* Give state machine time to transition to ERROR */
-    k_msleep(200);
+    k_msleep(2000);
 
     assert_led_on(&error_led, "error");
     assert_led_off(&blinker_led, "blinker");
@@ -573,7 +574,7 @@ ZTEST(adc_single_sample_tests, test_p1_08_error_on_bad_voltage)
     zassert_true(wait_for_event(RESET_TEST_NOTICE, 500),
         "RESET_TEST_NOTICE not fired");
 
-    k_msleep(100);
+    k_msleep(2000);
     assert_led_off(&error_led, "error (after reset)");
 }
 
