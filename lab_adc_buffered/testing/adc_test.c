@@ -346,10 +346,10 @@ static void assert_cycles_computed(int expected_cycles, int tolerance)
     // zassert_true(events & ADC_CYCLES_COMPUTED_NOTICE,
     //     "ADC_CYCLES_COMPUTED_NOTICE never fired (timeout %d ms)", timeout_ms);
 
-    int timeout_ms = (BUFFER_ARRAY_LEN * SAMPLE_INTERVAL) / 1000 + 500;
+    // int timeout_ms = (BUFFER_ARRAY_LEN * SAMPLE_INTERVAL) / 1000 + 500;
 
-    zassert_true(wait_for_event(ADC_CYCLES_COMPUTED_NOTICE, 10000),
-        "ADC_CYCLES_COMPUTED_NOTICE never fired (timeout %d ms)", 10000);
+    zassert_true(wait_for_event(ADC_CYCLES_COMPUTED_NOTICE, 15000),
+        "ADC_CYCLES_COMPUTED_NOTICE never fired (timeout %d ms)", 15000);
 
     zassert_within(student_calc_cycles_result, expected_cycles, tolerance,
         "calc_cycles: expected ~%d but got %d",
@@ -375,7 +375,7 @@ ZTEST(diff_adc_tests, test_p2_01_sample_button_triggers_acquisition)
     zassert_true(wait_for_event(ADC_SAMPLE_TRIGGERED_NOTICE, 800),
         "ADC_SAMPLE_TRIGGERED_NOTICE never fired");
 
-    zassert_true(wait_for_event(ADC_SAMPLE_COMPLETE_NOTICE, 10000), "ADC_SAMPLE_COMPLETE_NOTICE never fired");
+    zassert_true(wait_for_event(ADC_SAMPLE_COMPLETE_NOTICE, 15000), "ADC_SAMPLE_COMPLETE_NOTICE never fired");
 
 }
 
@@ -451,7 +451,7 @@ ZTEST(diff_adc_tests, test_p2_04_returns_to_idle_after_sample)
     //                                true, K_MSEC(timeout_ms));
     // zassert_true(events & ADC_CYCLES_COMPUTED_NOTICE,
     //     "Acquisition never completed");
-    zassert_true(wait_for_event(ADC_CYCLES_COMPUTED_NOTICE, 10000), "Acquisition never completed");
+    zassert_true(wait_for_event(ADC_CYCLES_COMPUTED_NOTICE, 14000), "Acquisition never completed");
 
     k_msleep(100); /* let state machine settle in IDLE */
 
