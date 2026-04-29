@@ -662,5 +662,3 @@ ZTEST(adc_single_sample_tests, test_p1_10_heartbeat_unaffected)
 /*  Register suites                                                   */
 /* ================================================================== */
 ZTEST_SUITE(adc_single_sample_tests, NULL, NULL, before, after, NULL);
-// ZTEST_SUITE(diff_adc_tests,          NULL, NULL, before, after, NULL);
-// ZTEST_SUITE(async_adc_tests,         NULL, NULL, before, after, NULL);

@@ -637,7 +637,7 @@ static void sample_entry(void *o) {
 
 static void sample_run(void *o) {
     int ret;
-    ret = adc_read(adc_vadc.dev, &diff_sequence);
+    ret = adc_read(diff_vadc.dev, &diff_sequence);
     if (ret < 0) {
         LOG_ERR("Could not read (%d)", ret);
         smf_set_state(SMF_CTX(&s_context), &states[ERROR]);

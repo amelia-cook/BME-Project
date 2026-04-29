@@ -30,6 +30,23 @@ static const struct device *adc_emul_dev;
 /*  Fixture                                                           */
 /* ================================================================== */
 
+static const struct device *adc_emul_dev;
+
+static bool wait_for_event(uint32_t mask, int timeout_ms)
+{
+    int64_t start = k_uptime_get();
+    uint32_t events = 0;
+
+    do {
+        events = k_event_wait(&program_test_events, mask, false, K_MSEC(20));
+        if (events & mask) {
+            return true;
+        }
+    } while ((k_uptime_get() - start) < timeout_ms);
+
+    return false;
+}
+
 static void before(void *)
 {
     stop_main();
@@ -43,7 +60,7 @@ static void before(void *)
     adc_emul_dev = DEVICE_DT_GET(ADC_EMUL_NODE);
     zassert_true(device_is_ready(adc_emul_dev), "ADC emulator not ready");
 
-    // start_main(500);
+    start_main(500);
 
     /* Clear all event bits */
     k_event_clear(&program_test_events,
@@ -321,13 +338,17 @@ static void assert_cycles_computed(int expected_cycles, int tolerance)
      * Acquisition takes BUFFER_ARRAY_LEN * SAMPLE_INTERVAL µs ≈ 2 s.
      * Add 500 ms margin.
      */
+
+    // uint32_t events = k_event_wait(&program_test_events,
+    //                                ADC_CYCLES_COMPUTED_NOTICE,
+    //                                true,
+    //                                K_MSEC(timeout_ms));
+    // zassert_true(events & ADC_CYCLES_COMPUTED_NOTICE,
+    //     "ADC_CYCLES_COMPUTED_NOTICE never fired (timeout %d ms)", timeout_ms);
+
     int timeout_ms = (BUFFER_ARRAY_LEN * SAMPLE_INTERVAL) / 1000 + 500;
 
-    uint32_t events = k_event_wait(&program_test_events,
-                                   ADC_CYCLES_COMPUTED_NOTICE,
-                                   true,
-                                   K_MSEC(timeout_ms));
-    zassert_true(events & ADC_CYCLES_COMPUTED_NOTICE,
+    zassert_true(wait_for_event(ADC_CYCLES_COMPUTED_NOTICE, timeout_ms),
         "ADC_CYCLES_COMPUTED_NOTICE never fired (timeout %d ms)", timeout_ms);
 
     zassert_within(student_calc_cycles_result, expected_cycles, tolerance,
@@ -345,22 +366,17 @@ static void assert_cycles_computed(int expected_cycles, int tolerance)
 ZTEST(diff_adc_tests, test_p2_01_sample_button_triggers_acquisition)
 {
     set_differential_sine(adc_emul_dev, 10, 2000, SAMPLE_INTERVAL);
-    start_main(500);
+    k_event_clear(&program_test_events, ADC_SAMPLE_TRIGGERED_NOTICE | ADC_SAMPLE_COMPLETE_NOTICE);
+
+    // start_main(500);
 
     simulate_button_click(&sample_button);
 
-    uint32_t events = k_event_wait(&program_test_events,
-                                   ADC_SAMPLE_TRIGGERED_NOTICE,
-                                   true, K_MSEC(300));
-    zassert_true(events & ADC_SAMPLE_TRIGGERED_NOTICE,
+    zassert_true(wait_for_event(ADC_SAMPLE_TRIGGERED_NOTICE, 800),
         "ADC_SAMPLE_TRIGGERED_NOTICE never fired");
 
-    /* Wait for full 800-sample acquisition (~2 s) + margin */
-    events = k_event_wait(&program_test_events,
-                          ADC_SAMPLE_COMPLETE_NOTICE,
-                          true, K_MSEC(2500));
-    zassert_true(events & ADC_SAMPLE_COMPLETE_NOTICE,
-        "ADC_SAMPLE_COMPLETE_NOTICE never fired");
+    zassert_true(wait_for_event(ADC_SAMPLE_COMPLETE_NOTICE, 2500), "ADC_SAMPLE_COMPLETE_NOTICE never fired");
+
 }
 
 /*
@@ -370,7 +386,12 @@ ZTEST(diff_adc_tests, test_p2_01_sample_button_triggers_acquisition)
 ZTEST(diff_adc_tests, test_p2_02_10hz_sine_detects_correct_cycles)
 {
     set_differential_sine(adc_emul_dev, 10, 2000, SAMPLE_INTERVAL);
-    start_main(500);
+
+    k_event_clear(&program_test_events,
+        ADC_SAMPLE_TRIGGERED_NOTICE | ADC_SAMPLE_COMPLETE_NOTICE |
+        ADC_CYCLES_COMPUTED_NOTICE);
+
+    // start_main(500);
 
     simulate_button_click(&sample_button);
 
@@ -383,15 +404,16 @@ ZTEST(diff_adc_tests, test_p2_02_10hz_sine_detects_correct_cycles)
 ZTEST(diff_adc_tests, test_p2_03_sample_button_disabled_during_acquisition)
 {
     set_differential_sine(adc_emul_dev, 10, 2000, SAMPLE_INTERVAL);
-    start_main(500);
+    // start_main(500);
 
     simulate_button_click(&sample_button);
 
     /* Confirm first acquisition started */
-    uint32_t events = k_event_wait(&program_test_events,
-                                   ADC_SAMPLE_TRIGGERED_NOTICE,
-                                   true, K_MSEC(300));
-    zassert_true(events & ADC_SAMPLE_TRIGGERED_NOTICE, "First press not detected");
+    // uint32_t events = k_event_wait(&program_test_events,
+    //                                ADC_SAMPLE_TRIGGERED_NOTICE,
+    //                                true, K_MSEC(300));
+    // zassert_true(events & ADC_SAMPLE_TRIGGERED_NOTICE, "First press not detected");
+    zassert_true(wait_for_event(ADC_SAMPLE_TRIGGERED_NOTICE, 300), "First press not detected");
 
     k_event_clear(&program_test_events, ADC_SAMPLE_TRIGGERED_NOTICE);
 
@@ -399,12 +421,15 @@ ZTEST(diff_adc_tests, test_p2_03_sample_button_disabled_during_acquisition)
     simulate_button_click(&sample_button);
     k_msleep(100);
 
-    events = k_event_wait(&program_test_events,
-                          ADC_SAMPLE_TRIGGERED_NOTICE,
-                          false, K_MSEC(100));
-    zassert_false(events & ADC_SAMPLE_TRIGGERED_NOTICE,
-        "sample_button not disabled: second ADC_SAMPLE_TRIGGERED fired");
+    // events = k_event_wait(&program_test_events,
+    //                       ADC_SAMPLE_TRIGGERED_NOTICE,
+    //                       false, K_MSEC(100));
+    // zassert_false(events & ADC_SAMPLE_TRIGGERED_NOTICE,
+    //     "sample_button not disabled: second ADC_SAMPLE_TRIGGERED fired");
+
+    zassert_false(wait_for_event(ADC_SAMPLE_TRIGGERED_NOTICE, 100), "sample_button not disabled: second ADC_SAMPLE_TRIGGERED fired");
 }
+
 
 /*
  * After acquisition completes, state machine returns to IDLE.
@@ -414,18 +439,19 @@ ZTEST(diff_adc_tests, test_p2_03_sample_button_disabled_during_acquisition)
 ZTEST(diff_adc_tests, test_p2_04_returns_to_idle_after_sample)
 {
     set_differential_sine(adc_emul_dev, 10, 2000, SAMPLE_INTERVAL);
-    start_main(500);
+    // start_main(500);
 
     simulate_button_click(&sample_button);
 
     int timeout_ms = (BUFFER_ARRAY_LEN * SAMPLE_INTERVAL) / 1000 + 500;
 
     /* Wait for full acquisition */
-    uint32_t events = k_event_wait(&program_test_events,
-                                   ADC_CYCLES_COMPUTED_NOTICE,
-                                   true, K_MSEC(timeout_ms));
-    zassert_true(events & ADC_CYCLES_COMPUTED_NOTICE,
-        "Acquisition never completed");
+    // uint32_t events = k_event_wait(&program_test_events,
+    //                                ADC_CYCLES_COMPUTED_NOTICE,
+    //                                true, K_MSEC(timeout_ms));
+    // zassert_true(events & ADC_CYCLES_COMPUTED_NOTICE,
+    //     "Acquisition never completed");
+    zassert_true(wait_for_event(ADC_CYCLES_COMPUTED_NOTICE, timeout_ms), "Acquisition never completed");
 
     k_msleep(100); /* let state machine settle in IDLE */
 
@@ -434,11 +460,12 @@ ZTEST(diff_adc_tests, test_p2_04_returns_to_idle_after_sample)
     k_event_clear(&program_test_events, ADC_READ_TRIGGERED_NOTICE);
     simulate_button_click(&read_button);
 
-    events = k_event_wait(&program_test_events,
-                          ADC_READ_TRIGGERED_NOTICE,
-                          true, K_MSEC(300));
-    zassert_true(events & ADC_READ_TRIGGERED_NOTICE,
-        "read_button not responsive after SAMPLE→IDLE transition");
+    // events = k_event_wait(&program_test_events,
+    //                       ADC_READ_TRIGGERED_NOTICE,
+    //                       true, K_MSEC(300));
+    // zassert_true(events & ADC_READ_TRIGGERED_NOTICE,
+    //     "read_button not responsive after SAMPLE→IDLE transition");
+    zassert_true(wait_for_event(ADC_READ_TRIGGERED_NOTICE, 300), "read_button not responsive after SAMPLE→IDLE transition");
 }
 
 /*
@@ -447,20 +474,22 @@ ZTEST(diff_adc_tests, test_p2_04_returns_to_idle_after_sample)
 ZTEST(diff_adc_tests, test_p2_05_sleep_button_disabled_during_sample)
 {
     set_differential_sine(adc_emul_dev, 10, 2000, SAMPLE_INTERVAL);
-    start_main(500);
+    // start_main(500);
 
     simulate_button_click(&sample_button);
-    k_event_wait(&program_test_events, ADC_SAMPLE_TRIGGERED_NOTICE, true, K_MSEC(300));
+    zassert_true(wait_for_event(ADC_SAMPLE_TRIGGERED_NOTICE, 300),
+        "sample_button first press not detected");
 
     k_event_clear(&program_test_events, SLEEP_TEST_NOTICE);
     simulate_button_click(&sleep_button);
     k_msleep(100);
 
-    uint32_t events = k_event_wait(&program_test_events,
-                                   SLEEP_TEST_NOTICE,
-                                   false, K_MSEC(100));
-    zassert_false(events & SLEEP_TEST_NOTICE,
-        "sleep_button was not disabled during SAMPLE state");
+    // uint32_t events = k_event_wait(&program_test_events,
+    //                                SLEEP_TEST_NOTICE,
+    //                                false, K_MSEC(100));
+    // zassert_false(events & SLEEP_TEST_NOTICE,
+    //     "sleep_button was not disabled during SAMPLE state");
+    zassert_false(wait_for_event(SLEEP_TEST_NOTICE, 100),"sleep_button was not disabled during SAMPLE state");
 }
 
 /*
@@ -469,20 +498,22 @@ ZTEST(diff_adc_tests, test_p2_05_sleep_button_disabled_during_sample)
 ZTEST(diff_adc_tests, test_p2_06_reset_button_disabled_during_sample)
 {
     set_differential_sine(adc_emul_dev, 10, 2000, SAMPLE_INTERVAL);
-    start_main(500);
+    // start_main(500);
 
     simulate_button_click(&sample_button);
-    k_event_wait(&program_test_events, ADC_SAMPLE_TRIGGERED_NOTICE, true, K_MSEC(300));
+    zassert_true(wait_for_event(ADC_SAMPLE_TRIGGERED_NOTICE, 300),"sample_button first press not detected");
 
     k_event_clear(&program_test_events, RESET_TEST_NOTICE);
     simulate_button_click(&reset_button);
     k_msleep(100);
 
-    uint32_t events = k_event_wait(&program_test_events,
-                                   RESET_TEST_NOTICE,
-                                   false, K_MSEC(100));
-    zassert_false(events & RESET_TEST_NOTICE,
-        "reset_button was not disabled during SAMPLE state");
+    // uint32_t events = k_event_wait(&program_test_events,
+    //                                RESET_TEST_NOTICE,
+    //                                false, K_MSEC(100));
+    // zassert_false(events & RESET_TEST_NOTICE,
+    //     "reset_button was not disabled during SAMPLE state");
+
+    zassert_false(wait_for_event(RESET_TEST_NOTICE, 100), "reset_button was not disabled during SAMPLE state");
 }
 
 /*
@@ -503,7 +534,7 @@ ZTEST(diff_adc_tests, test_p2_07_dc_signal_zero_cycles)
     adc_emul_value_func_set(adc_emul_dev, AIN1_CHANNEL_ID, ain1_dc_cb, NULL);
     adc_emul_value_func_set(adc_emul_dev, AIN2_CHANNEL_ID, ain1_dc_cb, NULL);
 
-    start_main(500);
+    // start_main(500);
     simulate_button_click(&sample_button);
 
     assert_cycles_computed(0, 1);  /* ±1 just in case of off-by-one */
@@ -515,7 +546,7 @@ ZTEST(diff_adc_tests, test_p2_07_dc_signal_zero_cycles)
 ZTEST(diff_adc_tests, test_p2_08_heartbeat_unaffected)
 {
     set_differential_sine(adc_emul_dev, 10, 2000, 2500);
-    start_main(500);
+    // start_main(500);
 
     simulate_button_click(&sample_button);
     k_event_wait(&program_test_events, ADC_SAMPLE_TRIGGERED_NOTICE, true, K_MSEC(300));
