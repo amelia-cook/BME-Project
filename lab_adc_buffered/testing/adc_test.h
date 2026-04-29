@@ -34,7 +34,7 @@
 /*  Student GPIO pins (defined in student's main.c)                  */
 /* ------------------------------------------------------------------ */
 // Buttons
-extern const struct gpio_dt_spec read_button;
+extern const struct gpio_dt_spec sample_button;
 extern const struct gpio_dt_spec read_button;
 extern const struct gpio_dt_spec sleep_button;
 extern const struct gpio_dt_spec reset_button;

@@ -484,7 +484,7 @@ static void reading_run(void *o) {
         LOG_ERR("Could not read (%d)", ret);
     } else {
         LOG_DBG("Raw ADC Buffer: %d", buf);
-        ADC_READ_COMPLETE();
+        // ADC_READ_COMPLETE();
     }
     
     int32_t val_mv;
