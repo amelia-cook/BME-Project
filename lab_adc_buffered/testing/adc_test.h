@@ -17,8 +17,8 @@
 /*  ADC emulator channel IDs (match student's DT overlay)            */
 /* ------------------------------------------------------------------ */
 #define AIN0_CHANNEL_ID   0   /* single-ended,  read_button   → READING state  */
-#define AIN1_CHANNEL_ID   1   /* differential+, sample_button → SAMPLE state   */
-#define AIN2_CHANNEL_ID   2   /* differential−, sample_button → SAMPLE state   */
+#define AIN1_CHANNEL_ID   1   /* differential+, read_button → SAMPLE state   */
+#define AIN2_CHANNEL_ID   2   /* differential−, read_button → SAMPLE state   */
 
 /* ------------------------------------------------------------------ */
 /*  Blink timing constants (mirror student macros)                   */
@@ -35,7 +35,7 @@
 /* ------------------------------------------------------------------ */
 // Buttons
 extern const struct gpio_dt_spec read_button;
-extern const struct gpio_dt_spec sample_button;
+extern const struct gpio_dt_spec read_button;
 extern const struct gpio_dt_spec sleep_button;
 extern const struct gpio_dt_spec reset_button;
 
@@ -137,7 +137,7 @@ static void set_ain0_mv(const struct device *adc_emul_dev, int millivolts);
  *   amplitude_raw:  peak count (e.g. 2000 for ≈2 V on a 3 V / 12-bit ADC)
  *   sample_iv_us:   must match SAMPLE_INTERVAL in student code
  *
- * Must be called BEFORE simulate_button_click(&sample_button).
+ * Must be called BEFORE simulate_button_click(&read_button).
  */
 static void set_differential_sine(const struct device *adc_emul_dev,
                                   int freq_hz,
@@ -233,8 +233,8 @@ static void assert_cycles_computed(int expected_cycles, int tolerance);
  * TEST SUITE SUMMARY — diff_adc_tests  (Phase 2 / v2.1.0)
  * ==========================================================================
  *
- * test_p2_01_sample_button_triggers_acquisition
- *      - Configure 10 Hz sine on AIN1/AIN2 → press sample_button
+ * test_p2_01_read_button_triggers_acquisition
+ *      - Configure 10 Hz sine on AIN1/AIN2 → press read_button
  *      - Verifies: ADC_SAMPLE_TRIGGERED_NOTICE fires, then
  *                  ADC_SAMPLE_COMPLETE_NOTICE fires
  *
@@ -243,8 +243,8 @@ static void assert_cycles_computed(int expected_cycles, int tolerance);
  *      - Verifies: ADC_CYCLES_COMPUTED fires,
  *                  student_calc_cycles_result ≈ 20 (tolerance ±2)
  *
- * test_p2_03_sample_button_disabled_during_acquisition
- *      - Press sample_button → immediately press sample_button again
+ * test_p2_03_read_button_disabled_during_acquisition
+ *      - Press read_button → immediately press read_button again
  *      - Verifies: second press produces no second ADC_SAMPLE_TRIGGERED_NOTICE
  *
  * test_p2_04_returns_to_idle_after_sample
@@ -252,11 +252,11 @@ static void assert_cycles_computed(int expected_cycles, int tolerance);
  *      - Verifies: state returns to IDLE (read_button becomes responsive again)
  *
  * test_p2_05_sleep_button_disabled_during_sample
- *      - Press sample_button → press sleep_button during acquisition
+ *      - Press read_button → press sleep_button during acquisition
  *      - Verifies: no SLEEP_TEST_NOTICE fires, sleep is ignored
  *
  * test_p2_06_reset_button_disabled_during_sample
- *      - Press sample_button → press reset_button during acquisition
+ *      - Press read_button → press reset_button during acquisition
  *      - Verifies: no RESET_TEST_NOTICE fires, reset is ignored during acquisition
  *
  * test_p2_07_dc_signal_zero_cycles
@@ -277,7 +277,7 @@ static void assert_cycles_computed(int expected_cycles, int tolerance);
  *                  student_calc_cycles_result ≈ 20 (tolerance ±2)
  *
  * test_p3_02_async_signal_fires
- *      - Inject 10 Hz sine → press sample_button
+ *      - Inject 10 Hz sine → press read_button
  *      - Verifies: ADC_ASYNC_DONE_NOTICE fires within reasonable timeout
  *
  * test_p3_03_async_timeout_mechanism

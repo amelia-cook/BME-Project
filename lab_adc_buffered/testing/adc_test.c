@@ -13,6 +13,8 @@
 #endif
 #include <math.h>   /* sinf() */
 
+#define SAMPLE_INTERVAL                 2500
+
 /* ================================================================== */
 /*  ADC emulator device handle                                        */
 /* ================================================================== */
@@ -32,13 +34,27 @@ static void before(void *)
 {
     stop_main();
 
+    gpio_emul_input_set(read_button.port,  read_button.pin,  0);
+    gpio_emul_input_set(sleep_button.port, sleep_button.pin, 0);
+    gpio_emul_input_set(reset_button.port, reset_button.pin, 0);
+    gpio_emul_input_set(sample_button.port, sample_button.pin, 0);
+
     /* Grab the emulated ADC device */
     adc_emul_dev = DEVICE_DT_GET(ADC_EMUL_NODE);
     zassert_true(device_is_ready(adc_emul_dev), "ADC emulator not ready");
 
+    // start_main(500);
+
     /* Clear all event bits */
     k_event_clear(&program_test_events,
-        FREQ_UP_TEST_NOTICE | FREQ_DOWN_TEST_NOTICE |
+        ADC_READ_TRIGGERED_NOTICE | ADC_READ_COMPLETE_NOTICE |
+        ADC_BLINK_DONE_NOTICE |
+        ADC_SAMPLE_TRIGGERED_NOTICE | ADC_SAMPLE_COMPLETE_NOTICE |
+        ADC_CYCLES_COMPUTED_NOTICE |
+        ADC_ASYNC_DONE_NOTICE | ADC_ASYNC_TIMEOUT_NOTICE);
+        
+        
+        /* FREQ_UP_TEST_NOTICE | FREQ_DOWN_TEST_NOTICE |
         RESET_BTN_TEST_NOTICE | SLEEP_BTN_TEST_NOTICE |
         ERROR_TEST_NOTICE | RESET_TEST_NOTICE | SLEEP_TEST_NOTICE |
         ADC_READ_TRIGGERED_NOTICE | ADC_READ_COMPLETE_NOTICE |
@@ -46,6 +62,8 @@ static void before(void *)
         ADC_SAMPLE_TRIGGERED_NOTICE | ADC_SAMPLE_COMPLETE_NOTICE |
         ADC_CYCLES_COMPUTED_NOTICE |
         ADC_ASYNC_DONE_NOTICE | ADC_ASYNC_TIMEOUT_NOTICE);
+        */
+    
 }
 
 static void after(void *)
@@ -194,131 +212,10 @@ static int ain0_const_cb(const struct device *dev,
  */
 static void set_ain0_mv(const struct device *dev, int millivolts)
 {
-    if (millivolts < 0)       { millivolts = 0; }
-    if (millivolts > MAX_V_MV){ millivolts = MAX_V_MV; }
+    int ret = adc_emul_const_value_set(dev, AIN0_CHANNEL_ID, millivolts);
 
-    g_ain0_raw_value = (uint32_t)(((uint64_t)millivolts * 4095U) / MAX_V_MV);
-    int ret = adc_emul_value_func_set(dev, AIN0_CHANNEL_ID, ain0_const_cb, NULL);
-    zassert_ok(ret, "set_ain0_mv: adc_emul_value_func_set failed (%d)", ret);
-}
-
-/* --- Phase 1: duty-cycle measurement ------------------------------- */
-
-/*
- * assert_blinker_freq / assert_blink_ontime_pct / assert_blink_total_duration_ms
- * all wrap the LED helpers specifically for the blinker_led.
- */
-static void assert_blinker_freq(int window_ms, int expected_hz, int tolerance_hz)
-{
-    assert_led_blink_freq(&blinker_led, window_ms,
-                          expected_hz, tolerance_hz, "blinker");
-}
-
-/*
- * Duty-cycle measurement using edge timestamps.
- * Counts total high-time across window_ms then computes percentage.
- *
- * Implementation note: a pair of callbacks (rising / falling) are
- * registered, each recording k_uptime_get() at the edge. High-time
- * is accumulated between rising→falling pairs.
- */
-static volatile int64_t g_rise_time_ms;
-static volatile int64_t g_high_time_accum_ms;
-static volatile bool    g_currently_high;
-
-static void blinker_rise_cb(const struct device *dev,
-                            struct gpio_callback *cb,
-                            uint32_t pins)
-{
-    g_rise_time_ms    = k_uptime_get();
-    g_currently_high  = true;
-}
-
-static void blinker_fall_cb(const struct device *dev,
-                            struct gpio_callback *cb,
-                            uint32_t pins)
-{
-    if (g_currently_high) {
-        g_high_time_accum_ms += k_uptime_get() - g_rise_time_ms;
-        g_currently_high = false;
-    }
-}
-
-static void assert_blink_ontime_pct(int window_ms, int expected_pct,
-                                    int tolerance_pct)
-{
-    g_high_time_accum_ms = 0;
-    g_currently_high     = false;
-
-    struct gpio_callback rise_cb, fall_cb;
-
-    /* Two separate callbacks: one per edge polarity */
-    gpio_init_callback(&rise_cb, blinker_rise_cb, BIT(blinker_led.pin));
-    gpio_init_callback(&fall_cb, blinker_fall_cb, BIT(blinker_led.pin));
-
-    int ret;
-    ret = gpio_add_callback_dt(&blinker_led, &rise_cb);
-    zassert_ok(ret, "duty: add rise cb failed");
-    ret = gpio_add_callback_dt(&blinker_led, &fall_cb);
-    zassert_ok(ret, "duty: add fall cb failed");
-
-    ret = gpio_pin_interrupt_configure_dt(&blinker_led, GPIO_INT_EDGE_BOTH);
-    zassert_ok(ret, "duty: configure interrupt failed");
-
-    k_msleep(window_ms);
-
-    gpio_pin_interrupt_configure_dt(&blinker_led, GPIO_INT_DISABLE);
-    gpio_remove_callback_dt(&blinker_led, &rise_cb);
-    gpio_remove_callback_dt(&blinker_led, &fall_cb);
-
-    int measured_pct = (int)((g_high_time_accum_ms * 100) / window_ms);
-
-    zassert_within(measured_pct, expected_pct, tolerance_pct,
-        "blinker duty cycle: expected ~%d%% but measured ~%d%%",
-        expected_pct, measured_pct);
-}
-
-/*
- * assert_blink_total_duration_ms — measure how long blinker_led
- * remains active (first edge to last edge) against the 5s spec.
- *
- * Waits up to (expected_ms + tolerance_ms + 500) ms for ADC_BLINK_DONE_NOTICE.
- * Records first-edge and done-notice timestamps.
- */
-static void assert_blink_total_duration_ms(int expected_ms, int tolerance_ms)
-{
-    /* Record first toggle */
-    g_led_toggles = 0;
-    struct gpio_callback cb;
-    gpio_init_callback(&cb, led_edge_callback, BIT(blinker_led.pin));
-    gpio_add_callback_dt(&blinker_led, &cb);
-    gpio_pin_interrupt_configure_dt(&blinker_led, GPIO_INT_EDGE_BOTH);
-
-    /* Wait for first edge to appear */
-    int64_t t_wait = k_uptime_get();
-    while (g_led_toggles == 0 && (k_uptime_get() - t_wait) < 500) {
-        k_msleep(5);
-    }
-    int64_t t_start = k_uptime_get();
-
-    gpio_pin_interrupt_configure_dt(&blinker_led, GPIO_INT_DISABLE);
-    gpio_remove_callback_dt(&blinker_led, &cb);
-
-    zassert_true(g_led_toggles > 0, "blinker never toggled, can't measure duration");
-
-    /* Now wait for the blink-complete notice */
-    uint32_t events = k_event_wait(&program_test_events,
-                                   ADC_BLINK_DONE_NOTICE,
-                                   true,
-                                   K_MSEC(expected_ms + tolerance_ms + 500));
-    zassert_true(events & ADC_BLINK_DONE_NOTICE,
-        "ADC_BLINK_DONE_NOTICE never fired within timeout");
-
-    int64_t measured_ms = k_uptime_get() - t_start;
-
-    zassert_within((int)measured_ms, expected_ms, tolerance_ms,
-        "blink duration: expected ~%d ms but measured ~%d ms",
-        expected_ms, (int)measured_ms);
+    // int ret = adc_emul_value_func_set(dev, AIN0_CHANNEL_ID, ain0_const_cb, NULL);
+    zassert_ok(ret, "adc_emul_value_func_set failed (%d)", ret);
 }
 
 /* --- Phase 2/3: differential sine-wave injection ------------------- */
@@ -424,7 +321,7 @@ static void assert_cycles_computed(int expected_cycles, int tolerance)
      * Acquisition takes BUFFER_ARRAY_LEN * SAMPLE_INTERVAL µs ≈ 2 s.
      * Add 500 ms margin.
      */
-    int timeout_ms = (BUFFER_ARRAY_LEN * 2500) / 1000 + 500;
+    int timeout_ms = (BUFFER_ARRAY_LEN * SAMPLE_INTERVAL) / 1000 + 500;
 
     uint32_t events = k_event_wait(&program_test_events,
                                    ADC_CYCLES_COMPUTED_NOTICE,
@@ -447,7 +344,7 @@ static void assert_cycles_computed(int expected_cycles, int tolerance)
  */
 ZTEST(diff_adc_tests, test_p2_01_sample_button_triggers_acquisition)
 {
-    set_differential_sine(adc_emul_dev, 10, 2000, 2500);
+    set_differential_sine(adc_emul_dev, 10, 2000, SAMPLE_INTERVAL);
     start_main(500);
 
     simulate_button_click(&sample_button);
@@ -472,7 +369,7 @@ ZTEST(diff_adc_tests, test_p2_01_sample_button_triggers_acquisition)
  */
 ZTEST(diff_adc_tests, test_p2_02_10hz_sine_detects_correct_cycles)
 {
-    set_differential_sine(adc_emul_dev, 10, 2000, 2500);
+    set_differential_sine(adc_emul_dev, 10, 2000, SAMPLE_INTERVAL);
     start_main(500);
 
     simulate_button_click(&sample_button);
@@ -485,7 +382,7 @@ ZTEST(diff_adc_tests, test_p2_02_10hz_sine_detects_correct_cycles)
  */
 ZTEST(diff_adc_tests, test_p2_03_sample_button_disabled_during_acquisition)
 {
-    set_differential_sine(adc_emul_dev, 10, 2000, 2500);
+    set_differential_sine(adc_emul_dev, 10, 2000, SAMPLE_INTERVAL);
     start_main(500);
 
     simulate_button_click(&sample_button);
@@ -516,15 +413,17 @@ ZTEST(diff_adc_tests, test_p2_03_sample_button_disabled_during_acquisition)
  */
 ZTEST(diff_adc_tests, test_p2_04_returns_to_idle_after_sample)
 {
-    set_differential_sine(adc_emul_dev, 10, 2000, 2500);
+    set_differential_sine(adc_emul_dev, 10, 2000, SAMPLE_INTERVAL);
     start_main(500);
 
     simulate_button_click(&sample_button);
 
+    int timeout_ms = (BUFFER_ARRAY_LEN * SAMPLE_INTERVAL) / 1000 + 500;
+
     /* Wait for full acquisition */
     uint32_t events = k_event_wait(&program_test_events,
                                    ADC_CYCLES_COMPUTED_NOTICE,
-                                   true, K_MSEC(3000));
+                                   true, K_MSEC(timeout_ms));
     zassert_true(events & ADC_CYCLES_COMPUTED_NOTICE,
         "Acquisition never completed");
 
@@ -547,7 +446,7 @@ ZTEST(diff_adc_tests, test_p2_04_returns_to_idle_after_sample)
  */
 ZTEST(diff_adc_tests, test_p2_05_sleep_button_disabled_during_sample)
 {
-    set_differential_sine(adc_emul_dev, 10, 2000, 2500);
+    set_differential_sine(adc_emul_dev, 10, 2000, SAMPLE_INTERVAL);
     start_main(500);
 
     simulate_button_click(&sample_button);
@@ -569,7 +468,7 @@ ZTEST(diff_adc_tests, test_p2_05_sleep_button_disabled_during_sample)
  */
 ZTEST(diff_adc_tests, test_p2_06_reset_button_disabled_during_sample)
 {
-    set_differential_sine(adc_emul_dev, 10, 2000, 2500);
+    set_differential_sine(adc_emul_dev, 10, 2000, SAMPLE_INTERVAL);
     start_main(500);
 
     simulate_button_click(&sample_button);

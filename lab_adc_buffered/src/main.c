@@ -177,6 +177,7 @@ int main(void)
 }
 
 void read_button_callback(const struct device *dev, struct gpio_callback *cb, uint32_t pins) {
+    ADC_READ_TRIGGERED();
     k_event_post(&button_events, READ_EVENT);
 }
 
@@ -219,6 +220,7 @@ void blinking_interrupt_handler(struct k_timer *blinking_timer) {
     k_timer_stop(&led_off_timer);
     
     k_event_post(&button_events, TIMER_COMPLETE_EVENT);
+    ADC_BLINK_COMPLETE();
 }
 
 void led_on_interrupt_handler(struct k_timer *led_on_timer) {
@@ -388,6 +390,7 @@ static void init(void *o) {
 }
 
 static void reset(void *o) {
+    RESET_STATUS();
     smf_set_state(SMF_CTX(&s_context), &states[IDLE]);
 }
 
@@ -444,6 +447,7 @@ static void idle_exit(void *o) {
 }
 
 static void sleep_run(void *o) {
+    SLEEP_STATE();
     uint32_t events = k_event_wait(&button_events, SLEEP_EVENT | RESET_EVENT, true, K_FOREVER);
     if (events & SLEEP_EVENT) {
         LOG_INF("Sleep button pressed");
@@ -480,6 +484,7 @@ static void reading_run(void *o) {
         LOG_ERR("Could not read (%d)", ret);
     } else {
         LOG_DBG("Raw ADC Buffer: %d", buf);
+        ADC_READ_COMPLETE();
     }
     
     int32_t val_mv;
@@ -585,6 +590,7 @@ static void error_entry(void *o) {
 }
 
 static void error_run(void *o) {
+    ERROR_STATE();
     uint32_t events = k_event_wait(&button_events, RESET_EVENT, true, K_FOREVER);
     if (events & RESET_EVENT) {
         LOG_INF("Reset button pressed");
@@ -626,6 +632,7 @@ static void sample_entry(void *o) {
     }
     
     (void)adc_sequence_init_dt(&diff_vadc, &diff_sequence);
+    ADC_SAMPLE_TRIGGERED();
 }
 
 static void sample_run(void *o) {
@@ -637,9 +644,12 @@ static void sample_run(void *o) {
         return;
     } else {
         LOG_DBG("Successfully read into diff_buf");
+        ADC_SAMPLE_COMPLETE();
     }
     
-    LOG_INF("The calculated number of cycles is %d", calc_cycles(diff_buf, BUFFER_ARRAY_LEN));
+    int cycles = calc_cycles(diff_buf, BUFFER_ARRAY_LEN);
+    LOG_INF("The calculated number of cycles is %d", cycles);
+    ADC_CYCLES_COMPUTED(cycles);
     LOG_HEXDUMP_INF(diff_buf, sizeof(diff_buf), "Differential ADC Samples");
     
     smf_set_state(SMF_CTX(&s_context), &states[IDLE]);
