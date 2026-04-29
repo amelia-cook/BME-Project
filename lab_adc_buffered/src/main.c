@@ -183,6 +183,7 @@ void read_button_callback(const struct device *dev, struct gpio_callback *cb, ui
 
 void sample_button_callback(const struct device *dev, struct gpio_callback *cb, uint32_t pins) {
     k_event_post(&button_events, SAMPLE_EVENT);
+    ADC_SAMPLE_TRIGGERED();
 }
 
 void sleep_button_callback(const struct device *dev, struct gpio_callback *cb, uint32_t pins) {
@@ -632,7 +633,7 @@ static void sample_entry(void *o) {
     }
     
     (void)adc_sequence_init_dt(&diff_vadc, &diff_sequence);
-    ADC_SAMPLE_TRIGGERED();
+    // ADC_SAMPLE_TRIGGERED();
 }
 
 static void sample_run(void *o) {
