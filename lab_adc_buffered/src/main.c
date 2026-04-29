@@ -647,6 +647,8 @@ static void sample_run(void *o) {
         ADC_SAMPLE_COMPLETE();
     }
     
+    // ADC_SAMPLE_COMPLETE_NOTICE();
+
     int cycles = calc_cycles(diff_buf, BUFFER_ARRAY_LEN);
     LOG_INF("The calculated number of cycles is %d", cycles);
     ADC_CYCLES_COMPUTED(cycles);
