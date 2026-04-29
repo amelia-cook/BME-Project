@@ -260,30 +260,17 @@ static int ain1_sine_cb(const struct device *dev,
                         void *data,
                         uint32_t *result)
 {
-    ARG_UNUSED(dev);
-    ARG_UNUSED(chan);
-    ARG_UNUSED(data);
+    ARG_UNUSED(dev); ARG_UNUSED(chan); ARG_UNUSED(data);
 
-    /* 
-     * Convert sample index to time:
-     *   t_us = idx * sample_interval_us
-     * Then compute sin(2π * freq * t_us / 1e6).
-     * Scale to [0, 2*amplitude] (unsigned raw ADC counts, midpoint = amplitude).
-     */
     float t_s = (float)g_sine_sample_idx * (float)g_sine_ain1.sample_interval_us
                 / 1000000.0f;
     float sine_val = sinf(2.0f * M_PI * (float)g_sine_ain1.freq_hz * t_s);
 
-    /* Map [-1,1] → [0, 2*amplitude], midpoint = amplitude */
-    int32_t raw = (int32_t)(g_sine_ain1.amplitude_raw * sine_val)
-                  + g_sine_ain1.amplitude_raw;
+    // Signed output: no DC offset, centered at 0
+    // Cast negative floats to int16_t, then to uint32_t for the emulator
+    int16_t raw = (int16_t)(g_sine_ain1.amplitude_raw * sine_val);
+    *result = (uint32_t)(uint16_t)raw;  // preserves two's complement bit pattern
 
-    if (raw < 0)    { raw = 0; }
-    if (raw > 4095) { raw = 4095; }
-
-    *result = (uint32_t)raw;
-
-    /* Advance index (both channels share the same counter; AIN1 is read first) */
     g_sine_sample_idx++;
     return 0;
 }
