@@ -262,52 +262,92 @@ static int ain1_sine_cb(const struct device *dev,
 {
     ARG_UNUSED(dev); ARG_UNUSED(chan); ARG_UNUSED(data);
 
-    float t_s = (float)g_sine_sample_idx * (float)g_sine_ain1.sample_interval_us
-                / 1000000.0f;
-    float sine_val = sinf(2.0f * M_PI * (float)g_sine_ain1.freq_hz * t_s);
+    float t_s = (float)g_sine_sample_idx *
+                (float)g_sine_ain1.sample_interval_us / 1e6f;
 
-    // Signed output: no DC offset, centered at 0
-    // Cast negative floats to int16_t, then to uint32_t for the emulator
-    int16_t raw = (int16_t)(g_sine_ain1.amplitude_raw * sine_val);
-    *result = (uint32_t)(uint16_t)raw;  // preserves two's complement bit pattern
+    float sine_val = sinf(2.0f * M_PI *
+                          g_sine_ain1.freq_hz * t_s);
 
-    g_sine_sample_idx++;
+    int16_t raw = (int16_t)((g_sine_ain1.amplitude_raw / 2) * sine_val);
+    *result = (uint32_t)(uint16_t)raw;
+
     return 0;
 }
 
-static int ain2_const_zero_cb(const struct device *dev,
-                              unsigned int chan,
-                              void *data,
-                              uint32_t *result)
+static int ain2_sine_inverted_cb(const struct device *dev,
+                                 unsigned int chan,
+                                 void *data,
+                                 uint32_t *result)
 {
-    ARG_UNUSED(dev);
-    ARG_UNUSED(chan);
-    ARG_UNUSED(data);
-    /*
-     * Drive AIN2 at midpoint (amplitude_raw) so the differential
-     * result buf[i] = AIN1[i] - AIN2[i] oscillates symmetrically
-     * around zero, giving clean zero crossings for calc_cycles.
-     */
-    *result = (uint32_t)g_sine_ain1.amplitude_raw;
+    ARG_UNUSED(dev); ARG_UNUSED(chan); ARG_UNUSED(data);
+
+    float t_s = (float)g_sine_sample_idx *
+                (float)g_sine_ain1.sample_interval_us / 1e6f;
+
+    float sine_val = sinf(2.0f * M_PI *
+                          g_sine_ain1.freq_hz * t_s);
+
+    int16_t raw = (int16_t)(-(g_sine_ain1.amplitude_raw / 2) * sine_val);
+    *result = (uint32_t)(uint16_t)raw;
+
+    g_sine_sample_idx++;  // increment ONCE per sample pair
     return 0;
 }
+
+// static int ain1_sine_cb(const struct device *dev,
+//                         unsigned int chan,
+//                         void *data,
+//                         uint32_t *result)
+// {
+//     ARG_UNUSED(dev); ARG_UNUSED(chan); ARG_UNUSED(data);
+
+//     float t_s = (float)g_sine_sample_idx * (float)g_sine_ain1.sample_interval_us
+//                 / 1000000.0f;
+//     float sine_val = sinf(2.0f * M_PI * (float)g_sine_ain1.freq_hz * t_s);
+
+//     // Signed raw value — no DC offset, crosses zero naturally
+//     int16_t raw = (int16_t)(g_sine_ain1.amplitude_raw * sine_val);
+//     *result = (uint32_t)(uint16_t)raw;  // two's complement preserved
+
+//     g_sine_sample_idx++;
+//     return 0;
+// }
+
+// static int ain2_const_zero_cb(const struct device *dev,
+//                               unsigned int chan,
+//                               void *data,
+//                               uint32_t *result)
+// {
+//     ARG_UNUSED(dev);
+//     ARG_UNUSED(chan);
+//     ARG_UNUSED(data);
+//     /*
+//      * Drive AIN2 at midpoint (amplitude_raw) so the differential
+//      * result buf[i] = AIN1[i] - AIN2[i] oscillates symmetrically
+//      * around zero, giving clean zero crossings for calc_cycles.
+//      */
+//     *result = (uint32_t)g_sine_ain1.amplitude_raw;
+//     return 0;
+// }
 
 static void set_differential_sine(const struct device *dev,
                                   int freq_hz,
                                   int amplitude_raw,
                                   int sample_iv_us)
 {
-    g_sine_ain1.freq_hz          = freq_hz;
-    g_sine_ain1.amplitude_raw    = amplitude_raw;
+    g_sine_ain1.freq_hz            = freq_hz;
+    g_sine_ain1.amplitude_raw      = amplitude_raw;
     g_sine_ain1.sample_interval_us = sample_iv_us;
-    g_sine_sample_idx            = 0;
+    g_sine_sample_idx              = 0;
 
     int ret;
-    ret = adc_emul_value_func_set(dev, AIN1_CHANNEL_ID, ain1_sine_cb, NULL);
-    zassert_ok(ret, "set_differential_sine: AIN1 func_set failed (%d)", ret);
+    // Use raw func — bypasses mV conversion, writes bits directly to buffer
+    ret = adc_emul_raw_value_func_set(dev, AIN1_CHANNEL_ID, ain1_sine_cb, NULL);
+    zassert_ok(ret, "set_differential_sine: AIN1 raw_func_set failed (%d)", ret);
 
-    ret = adc_emul_value_func_set(dev, AIN2_CHANNEL_ID, ain2_const_zero_cb, NULL);
-    zassert_ok(ret, "set_differential_sine: AIN2 func_set failed (%d)", ret);
+    // AIN2 unused in single-ended mode, but set it anyway
+    ret = adc_emul_raw_value_func_set(dev, AIN2_CHANNEL_ID, ain2_const_zero_cb, NULL);
+    zassert_ok(ret, "set_differential_sine: AIN2 raw_func_set failed (%d)", ret);
 }
 
 /*

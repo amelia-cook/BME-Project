@@ -1,3 +1,5 @@
+#include <zephyr/dt-bindings/adc/adc.h>
+
 / {
     aliases {
         heartbeat   = &sim_adc_led1;
@@ -79,8 +81,8 @@
             zephyr,reference        = "ADC_REF_INTERNAL";
             zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
             zephyr,resolution       = <12>;
-            // zephyr,differential;    // ← uncomment this
-            // zephyr,input-negative   = <2>;  // AIN2 is the negative input
+            zephyr,differential;    // ← uncomment this
+            zephyr,input-negative   = <2>;  // AIN2 is the negative input
         };
     };
 };
