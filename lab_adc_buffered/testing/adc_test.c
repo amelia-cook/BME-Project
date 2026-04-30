@@ -270,7 +270,6 @@ static int ain1_sine_cb(const struct device *dev,
 
     int16_t raw = (int16_t)((g_sine_ain1.amplitude_raw / 2) * sine_val);
     *result = (uint32_t)(uint16_t)raw;
-
     return 0;
 }
 
@@ -290,7 +289,7 @@ static int ain2_sine_inverted_cb(const struct device *dev,
     int16_t raw = (int16_t)(-(g_sine_ain1.amplitude_raw / 2) * sine_val);
     *result = (uint32_t)(uint16_t)raw;
 
-    g_sine_sample_idx++;  // increment ONCE per sample pair
+    g_sine_sample_idx++;  
     return 0;
 }
 
@@ -341,13 +340,12 @@ static void set_differential_sine(const struct device *dev,
     g_sine_sample_idx              = 0;
 
     int ret;
-    // Use raw func — bypasses mV conversion, writes bits directly to buffer
+    
     ret = adc_emul_value_func_set(dev, AIN1_CHANNEL_ID, ain1_sine_cb, NULL);
-    zassert_ok(ret, "set_differential_sine: AIN1 raw_func_set failed (%d)", ret);
+    zassert_ok(ret, "AIN1 set failed");
 
-    // AIN2 unused in single-ended mode, but set it anyway
     ret = adc_emul_value_func_set(dev, AIN2_CHANNEL_ID, ain2_sine_inverted_cb, NULL);
-    zassert_ok(ret, "set_differential_sine: AIN2 raw_func_set failed (%d)", ret);
+    zassert_ok(ret, "AIN2 set failed");
 }
 
 /*
