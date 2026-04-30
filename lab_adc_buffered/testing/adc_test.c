@@ -262,21 +262,16 @@ static int sine_cb(const struct device *dev,
     ARG_UNUSED(chan);
     ARG_UNUSED(data);
 
-    /* Each call represents next sample — no manual indexing needed */
-    static int local_sample = 0;
-
-    float t_s = (float)local_sample *
+    float t_s = (float)g_sine_sample_idx *
                 (float)g_sine_ain1.sample_interval_us / 1e6f;
 
     float sine_val = sinf(2.0f * M_PI *
-                          g_sine_ain1.freq_hz * t_s);
+                          (float)g_sine_ain1.freq_hz * t_s);
 
     int16_t raw = (int16_t)(g_sine_ain1.amplitude_raw * sine_val);
 
-    /* shift into unsigned ADC range */
-    *result = (uint32_t)(raw + 2048);
-
-    local_sample++;
+    /* IMPORTANT: DO NOT CAST TO uint32_t DIRECTLY */
+    *result = (uint32_t)(int32_t)raw;
 
     return 0;
 }
@@ -316,39 +311,45 @@ static void set_ain0_mv(const struct device *dev, int millivolts)
 static int ain1_sine_cb(const struct device *dev,
                         unsigned int chan,
                         void *data,
-                        unsigned int *result)
+                        uint32_t *result)
 {
     ARG_UNUSED(dev);
     ARG_UNUSED(chan);
     ARG_UNUSED(data);
 
-    static int sample = 0;
-
-    float t_s = (float)sample *
+    float t_s = (float)g_sine_sample_idx *
                 (float)g_sine_ain1.sample_interval_us / 1e6f;
 
     float sine_val = sinf(2.0f * M_PI *
-                          g_sine_ain1.freq_hz * t_s);
+                          (float)g_sine_ain1.freq_hz * t_s);
 
     int16_t raw = (int16_t)(g_sine_ain1.amplitude_raw * sine_val);
 
-    *result = (unsigned int)(raw + 2048);
+    *result = (uint32_t)(int32_t)raw;
 
-    sample++;
     return 0;
 }
 
 static int ain2_sine_inverted_cb(const struct device *dev,
                                  unsigned int chan,
                                  void *data,
-                                 unsigned int *result)
+                                 uint32_t *result)
 {
     ARG_UNUSED(dev);
     ARG_UNUSED(chan);
     ARG_UNUSED(data);
 
-    /* Flat reference → clean differential sine */
-    *result = 2048;
+    float t_s = (float)g_sine_sample_idx *
+                (float)g_sine_ain1.sample_interval_us / 1e6f;
+
+    float sine_val = sinf(2.0f * M_PI *
+                          (float)g_sine_ain1.freq_hz * t_s);
+
+    int16_t raw = (int16_t)(-g_sine_ain1.amplitude_raw * sine_val);
+
+    *result = (uint32_t)(int32_t)raw;
+
+    g_sine_sample_idx++;   // ONLY increment here
 
     return 0;
 }
@@ -403,6 +404,30 @@ static void assert_cycles_computed(int expected_cycles, int tolerance)
         "calc_cycles: expected ~%d but got %d",
         expected_cycles, student_calc_cycles_result);
 }
+
+/*
+ * DC signal (constant midpoint value) → zero crossings = 0.
+ */
+static int ain1_dc_cb(const struct device *dev, unsigned int chan, void *data, uint32_t *result)
+{
+    ARG_UNUSED(dev);
+    ARG_UNUSED(chan);
+    ARG_UNUSED(data);
+
+    *result = 1500;
+    return 0;
+}
+
+static int ain2_dc_cb(const struct device *dev, unsigned int chan, void *data, uint32_t *result)
+{
+    ARG_UNUSED(dev);
+    ARG_UNUSED(chan);
+    ARG_UNUSED(data);
+
+    *result = 1500;
+    return 0;
+}
+
 
 /* ================================================================== */
 /*  PHASE 2 TESTS — diff_adc_tests                                   */
@@ -559,29 +584,6 @@ ZTEST(diff_adc_tests, test_p2_06_reset_button_disabled_during_sample)
     //     "reset_button was not disabled during SAMPLE state");
 
     zassert_false(wait_for_event(RESET_TEST_NOTICE, 100), "reset_button was not disabled during SAMPLE state");
-}
-
-/*
- * DC signal (constant midpoint value) → zero crossings = 0.
- */
-static int ain1_dc_cb(const struct device *dev, unsigned int chan, void *data, uint32_t *result)
-{
-    ARG_UNUSED(dev);
-    ARG_UNUSED(chan);
-    ARG_UNUSED(data);
-
-    *result = 1500;
-    return 0;
-}
-
-static int ain2_dc_cb(const struct device *dev, unsigned int chan, void *data, uint32_t *result)
-{
-    ARG_UNUSED(dev);
-    ARG_UNUSED(chan);
-    ARG_UNUSED(data);
-
-    *result = 1500;
-    return 0;
 }
 
 ZTEST(diff_adc_tests, test_p2_07_dc_signal_zero_cycles)
