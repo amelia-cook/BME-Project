@@ -62,12 +62,12 @@ static void before(void *)
     adc_emul_dev = DEVICE_DT_GET(ADC_EMUL_NODE);
     zassert_true(device_is_ready(adc_emul_dev), "ADC emulator not ready");
 
-    adc_emul_channel_reset(adc_emul_dev, AIN1_CHANNEL_ID);
-    adc_emul_channel_reset(adc_emul_dev, AIN2_CHANNEL_ID); 
+    // adc_emul_channel_reset(adc_emul_dev, AIN1_CHANNEL_ID);
+    // adc_emul_channel_reset(adc_emul_dev, AIN2_CHANNEL_ID); 
     
     // for diff zephyr version 
-    // adc_emul_value_func_set(adc_emul_dev, AIN1_CHANNEL_ID, NULL, NULL);
-    // adc_emul_value_func_set(adc_emul_dev, AIN2_CHANNEL_ID, NULL, NULL);
+    adc_emul_value_func_set(adc_emul_dev, AIN1_CHANNEL_ID, NULL, NULL);
+    adc_emul_value_func_set(adc_emul_dev, AIN2_CHANNEL_ID, NULL, NULL);
 
     start_main(500);
 
