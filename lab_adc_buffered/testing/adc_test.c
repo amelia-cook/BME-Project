@@ -15,6 +15,8 @@
 
 #define SAMPLE_INTERVAL                 2500
 
+#define SINE_SAMPLES 800
+
 /* ================================================================== */
 /*  ADC emulator device handle                                        */
 /* ================================================================== */
@@ -27,11 +29,14 @@
 static const struct device *adc_emul_dev;
 static volatile int32_t g_sine_sample_idx;
 
+// static uint16_t sine_lut[SINE_SAMPLES];
+// static volatile uint32_t idx;
+
 /* ================================================================== */
 /*  Fixture                                                           */
 /* ================================================================== */
 
-static const struct device *adc_emul_dev;
+// static const struct device *adc_emul_dev;
 
 static bool wait_for_event(uint32_t mask, int timeout_ms)
 {
@@ -230,21 +235,49 @@ static int32_t g_ain0_raw_value;
 //     return 0;
 // }
 
-void init_sine(int amplitude, int offset)
-{
-    for (int i = 0; i < SINE_SAMPLES; i++) {
-        float s = sinf(2.0f * M_PI * i / SINE_SAMPLES);
-        sine_lut[i] = (int16_t)(offset + amplitude * s);
-    }
-    idx = 0;
-}
+// void init_sine(int amplitude, int offset)
+// {
+//     for (int i = 0; i < SINE_SAMPLES; i++) {
+//         float s = sinf(2.0f * M_PI * i / SINE_SAMPLES);
+//         sine_lut[i] = (uint16_t)(offset + amplitude * s);
+//     }
+//     idx = 0;
+// }
+
+// static int sine_cb(const struct device *dev,
+//                    unsigned int chan,
+//                    void *data,
+//                    uint32_t *result)
+// {
+//     *result = sine_lut[idx++ % SINE_SAMPLES];
+//     return 0;
+// }
 
 static int sine_cb(const struct device *dev,
                    unsigned int chan,
                    void *data,
-                   int32_t *result)
+                   uint32_t *result)
 {
-    *result = sine_lut[idx++ % SINE_SAMPLES];
+    ARG_UNUSED(dev);
+    ARG_UNUSED(chan);
+    ARG_UNUSED(data);
+
+    /* Each call represents next sample — no manual indexing needed */
+    static int local_sample = 0;
+
+    float t_s = (float)local_sample *
+                (float)g_sine_ain1.sample_interval_us / 1e6f;
+
+    float sine_val = sinf(2.0f * M_PI *
+                          g_sine_ain1.freq_hz * t_s);
+
+    int16_t raw = (int16_t)(g_sine_ain1.amplitude_raw * sine_val);
+
+    /* shift into unsigned ADC range */
+    *result = (uint32_t)(raw + 2048);
+
+    local_sample++;
+
     return 0;
 }
 
@@ -258,8 +291,8 @@ static void set_ain0_mv(const struct device *dev, int millivolts)
 {
     // int ret = adc_emul_const_value_set(dev, AIN0_CHANNEL_ID, millivolts);
 
-    int ret = adc_emul_value_func_set(dev, AIN1_CHANNEL_ID, sine_cb, NULL);
-    zassert_ok(ret, "adc_emul_value_func_set failed (%d)", ret);
+    int ret = adc_emul_const_value_set(dev, AIN0_CHANNEL_ID, millivolts);
+    zassert_ok(ret, "adc_emul_const_value_set failed (%d)", ret);
 }
 
 /* --- Phase 2/3: differential sine-wave injection ------------------- */
@@ -283,76 +316,42 @@ static void set_ain0_mv(const struct device *dev, int millivolts)
 static int ain1_sine_cb(const struct device *dev,
                         unsigned int chan,
                         void *data,
-                        int32_t *result)
+                        unsigned int *result)
 {
-    ARG_UNUSED(dev); ARG_UNUSED(chan); ARG_UNUSED(data);
+    ARG_UNUSED(dev);
+    ARG_UNUSED(chan);
+    ARG_UNUSED(data);
 
-    float t_s = (float)g_sine_sample_idx *
+    static int sample = 0;
+
+    float t_s = (float)sample *
                 (float)g_sine_ain1.sample_interval_us / 1e6f;
 
     float sine_val = sinf(2.0f * M_PI *
                           g_sine_ain1.freq_hz * t_s);
 
-    int16_t raw = (int16_t)((g_sine_ain1.amplitude_raw / 2) * sine_val);
-    *result = (int32_t)(int16_t)raw;
+    int16_t raw = (int16_t)(g_sine_ain1.amplitude_raw * sine_val);
+
+    *result = (unsigned int)(raw + 2048);
+
+    sample++;
     return 0;
 }
 
 static int ain2_sine_inverted_cb(const struct device *dev,
                                  unsigned int chan,
                                  void *data,
-                                 int32_t *result)
+                                 unsigned int *result)
 {
-    ARG_UNUSED(dev); ARG_UNUSED(chan); ARG_UNUSED(data);
+    ARG_UNUSED(dev);
+    ARG_UNUSED(chan);
+    ARG_UNUSED(data);
 
-    float t_s = (float)g_sine_sample_idx *
-                (float)g_sine_ain1.sample_interval_us / 1e6f;
+    /* Flat reference → clean differential sine */
+    *result = 2048;
 
-    float sine_val = sinf(2.0f * M_PI *
-                          g_sine_ain1.freq_hz * t_s);
-
-    int16_t raw = (int16_t)(-(g_sine_ain1.amplitude_raw / 2) * sine_val);
-    *result = (int32_t)(int16_t)raw;
-
-    g_sine_sample_idx++;  
     return 0;
 }
-
-// static int ain1_sine_cb(const struct device *dev,
-//                         unsigned int chan,
-//                         void *data,
-//                         int32_t *result)
-// {
-//     ARG_UNUSED(dev); ARG_UNUSED(chan); ARG_UNUSED(data);
-
-//     float t_s = (float)g_sine_sample_idx * (float)g_sine_ain1.sample_interval_us
-//                 / 1000000.0f;
-//     float sine_val = sinf(2.0f * M_PI * (float)g_sine_ain1.freq_hz * t_s);
-
-//     // Signed raw value — no DC offset, crosses zero naturally
-//     int16_t raw = (int16_t)(g_sine_ain1.amplitude_raw * sine_val);
-//     *result = (int32_t)(int16_t)raw;  // two's complement preserved
-
-//     g_sine_sample_idx++;
-//     return 0;
-// }
-
-// static int ain2_const_zero_cb(const struct device *dev,
-//                               unsigned int chan,
-//                               void *data,
-//                               int32_t *result)
-// {
-//     ARG_UNUSED(dev);
-//     ARG_UNUSED(chan);
-//     ARG_UNUSED(data);
-//     /*
-//      * Drive AIN2 at midpoint (amplitude_raw) so the differential
-//      * result buf[i] = AIN1[i] - AIN2[i] oscillates symmetrically
-//      * around zero, giving clean zero crossings for calc_cycles.
-//      */
-//     *result = (int32_t)g_sine_ain1.amplitude_raw;
-//     return 0;
-// }
 
 static void set_differential_sine(const struct device *dev,
                                   int freq_hz,
@@ -362,10 +361,9 @@ static void set_differential_sine(const struct device *dev,
     g_sine_ain1.freq_hz            = freq_hz;
     g_sine_ain1.amplitude_raw      = amplitude_raw;
     g_sine_ain1.sample_interval_us = sample_iv_us;
-    g_sine_sample_idx              = 0;
 
     int ret;
-    
+
     ret = adc_emul_value_func_set(dev, AIN1_CHANNEL_ID, ain1_sine_cb, NULL);
     zassert_ok(ret, "AIN1 set failed");
 
@@ -571,7 +569,8 @@ static int ain1_dc_cb(const struct device *dev, unsigned int chan, void *data, u
     ARG_UNUSED(dev);
     ARG_UNUSED(chan);
     ARG_UNUSED(data);
-    *result = 2048;  /* positive DC, above midpoint */
+
+    *result = 1500;
     return 0;
 }
 
@@ -580,7 +579,8 @@ static int ain2_dc_cb(const struct device *dev, unsigned int chan, void *data, u
     ARG_UNUSED(dev);
     ARG_UNUSED(chan);
     ARG_UNUSED(data);
-    *result = 2048;
+
+    *result = 1500;
     return 0;
 }
 
