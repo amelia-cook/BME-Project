@@ -342,11 +342,11 @@ static void set_differential_sine(const struct device *dev,
 
     int ret;
     // Use raw func — bypasses mV conversion, writes bits directly to buffer
-    ret = adc_emul_raw_value_func_set(dev, AIN1_CHANNEL_ID, ain1_sine_cb, NULL);
+    ret = adc_emul_value_func_set(dev, AIN1_CHANNEL_ID, ain1_sine_cb, NULL);
     zassert_ok(ret, "set_differential_sine: AIN1 raw_func_set failed (%d)", ret);
 
     // AIN2 unused in single-ended mode, but set it anyway
-    ret = adc_emul_raw_value_func_set(dev, AIN2_CHANNEL_ID, ain2_const_zero_cb, NULL);
+    ret = adc_emul_value_func_set(dev, AIN2_CHANNEL_ID, ain2_sine_inverted_cb, NULL);
     zassert_ok(ret, "set_differential_sine: AIN2 raw_func_set failed (%d)", ret);
 }
 
