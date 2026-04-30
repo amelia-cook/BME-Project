@@ -25,6 +25,7 @@
  * in every test.
  */
 static const struct device *adc_emul_dev;
+static volatile int32_t g_sine_sample_idx;
 
 /* ================================================================== */
 /*  Fixture                                                           */
@@ -50,6 +51,7 @@ static bool wait_for_event(uint32_t mask, int timeout_ms)
 static void before(void *)
 {
     stop_main();
+    g_sine_sample_idx = 0;
 
     gpio_emul_input_set(read_button.port,  read_button.pin,  0);
     gpio_emul_input_set(sleep_button.port, sleep_button.pin, 0);
@@ -59,6 +61,13 @@ static void before(void *)
     /* Grab the emulated ADC device */
     adc_emul_dev = DEVICE_DT_GET(ADC_EMUL_NODE);
     zassert_true(device_is_ready(adc_emul_dev), "ADC emulator not ready");
+
+    adc_emul_channel_reset(adc_emul_dev, AIN1_CHANNEL_ID);
+    adc_emul_channel_reset(adc_emul_dev, AIN2_CHANNEL_ID); 
+    
+    // for diff zephyr version 
+    // adc_emul_value_func_set(adc_emul_dev, AIN1_CHANNEL_ID, NULL, NULL);
+    // adc_emul_value_func_set(adc_emul_dev, AIN2_CHANNEL_ID, NULL, NULL);
 
     start_main(500);
 
@@ -207,7 +216,7 @@ static void simulate_button_click(const struct gpio_dt_spec *button)
 
 /* --- Phase 1: constant AIN0 voltage -------------------------------- */
 
-static uint32_t g_ain0_raw_value;
+static int32_t g_ain0_raw_value;
 
 // static int ain0_const_cb(const struct device *dev,
 //                          unsigned int chan,
@@ -221,6 +230,24 @@ static uint32_t g_ain0_raw_value;
 //     return 0;
 // }
 
+void init_sine(int amplitude, int offset)
+{
+    for (int i = 0; i < SINE_SAMPLES; i++) {
+        float s = sinf(2.0f * M_PI * i / SINE_SAMPLES);
+        sine_lut[i] = (int16_t)(offset + amplitude * s);
+    }
+    idx = 0;
+}
+
+static int sine_cb(const struct device *dev,
+                   unsigned int chan,
+                   void *data,
+                   int32_t *result)
+{
+    *result = sine_lut[idx++ % SINE_SAMPLES];
+    return 0;
+}
+
 /*
  * set_ain0_mv — inject a constant millivolt value on AIN0.
  *
@@ -229,9 +256,9 @@ static uint32_t g_ain0_raw_value;
  */
 static void set_ain0_mv(const struct device *dev, int millivolts)
 {
-    int ret = adc_emul_const_value_set(dev, AIN0_CHANNEL_ID, millivolts);
+    // int ret = adc_emul_const_value_set(dev, AIN0_CHANNEL_ID, millivolts);
 
-    // int ret = adc_emul_value_func_set(dev, AIN0_CHANNEL_ID, ain0_const_cb, NULL);
+    int ret = adc_emul_value_func_set(dev, AIN1_CHANNEL_ID, sine_cb, NULL);
     zassert_ok(ret, "adc_emul_value_func_set failed (%d)", ret);
 }
 
@@ -253,12 +280,10 @@ static void set_ain0_mv(const struct device *dev, int millivolts)
  * diff read gives the sine directly.
  */
 
-static volatile uint32_t g_sine_sample_idx;
-
 static int ain1_sine_cb(const struct device *dev,
                         unsigned int chan,
                         void *data,
-                        uint32_t *result)
+                        int32_t *result)
 {
     ARG_UNUSED(dev); ARG_UNUSED(chan); ARG_UNUSED(data);
 
@@ -269,14 +294,14 @@ static int ain1_sine_cb(const struct device *dev,
                           g_sine_ain1.freq_hz * t_s);
 
     int16_t raw = (int16_t)((g_sine_ain1.amplitude_raw / 2) * sine_val);
-    *result = (uint32_t)(uint16_t)raw;
+    *result = (int32_t)(int16_t)raw;
     return 0;
 }
 
 static int ain2_sine_inverted_cb(const struct device *dev,
                                  unsigned int chan,
                                  void *data,
-                                 uint32_t *result)
+                                 int32_t *result)
 {
     ARG_UNUSED(dev); ARG_UNUSED(chan); ARG_UNUSED(data);
 
@@ -287,7 +312,7 @@ static int ain2_sine_inverted_cb(const struct device *dev,
                           g_sine_ain1.freq_hz * t_s);
 
     int16_t raw = (int16_t)(-(g_sine_ain1.amplitude_raw / 2) * sine_val);
-    *result = (uint32_t)(uint16_t)raw;
+    *result = (int32_t)(int16_t)raw;
 
     g_sine_sample_idx++;  
     return 0;
@@ -296,7 +321,7 @@ static int ain2_sine_inverted_cb(const struct device *dev,
 // static int ain1_sine_cb(const struct device *dev,
 //                         unsigned int chan,
 //                         void *data,
-//                         uint32_t *result)
+//                         int32_t *result)
 // {
 //     ARG_UNUSED(dev); ARG_UNUSED(chan); ARG_UNUSED(data);
 
@@ -306,7 +331,7 @@ static int ain2_sine_inverted_cb(const struct device *dev,
 
 //     // Signed raw value — no DC offset, crosses zero naturally
 //     int16_t raw = (int16_t)(g_sine_ain1.amplitude_raw * sine_val);
-//     *result = (uint32_t)(uint16_t)raw;  // two's complement preserved
+//     *result = (int32_t)(int16_t)raw;  // two's complement preserved
 
 //     g_sine_sample_idx++;
 //     return 0;
@@ -315,7 +340,7 @@ static int ain2_sine_inverted_cb(const struct device *dev,
 // static int ain2_const_zero_cb(const struct device *dev,
 //                               unsigned int chan,
 //                               void *data,
-//                               uint32_t *result)
+//                               int32_t *result)
 // {
 //     ARG_UNUSED(dev);
 //     ARG_UNUSED(chan);
@@ -325,7 +350,7 @@ static int ain2_sine_inverted_cb(const struct device *dev,
 //      * result buf[i] = AIN1[i] - AIN2[i] oscillates symmetrically
 //      * around zero, giving clean zero crossings for calc_cycles.
 //      */
-//     *result = (uint32_t)g_sine_ain1.amplitude_raw;
+//     *result = (int32_t)g_sine_ain1.amplitude_raw;
 //     return 0;
 // }
 
@@ -411,6 +436,7 @@ ZTEST(diff_adc_tests, test_p2_01_sample_button_triggers_acquisition)
 ZTEST(diff_adc_tests, test_p2_02_10hz_sine_detects_correct_cycles)
 {
     set_differential_sine(adc_emul_dev, 10, 2000, SAMPLE_INTERVAL);
+    g_sine_sample_idx = 0; 
 
     k_event_clear(&program_test_events,
         ADC_SAMPLE_TRIGGERED_NOTICE | ADC_SAMPLE_COMPLETE_NOTICE |
@@ -474,11 +500,11 @@ ZTEST(diff_adc_tests, test_p2_04_returns_to_idle_after_sample)
     zassert_true(wait_for_event(ADC_SAMPLE_COMPLETE_NOTICE, 15000), "ADC_SAMPLE_COMPLETE_NOTICE never fired");
 
 
-    k_msleep(500); /* let state machine settle in IDLE */
+    k_msleep(1500); /* let state machine settle in IDLE */
 
     /* Now read_button should be responsive */
     set_ain0_mv(adc_emul_dev, 1500);
-    k_event_clear(&program_test_events, ADC_READ_TRIGGERED_NOTICE | ADC_READ_COMPLETE_NOTICE | ADC_CYCLES_COMPUTED_NOTICE);
+    k_event_clear(&program_test_events, ADC_READ_TRIGGERED_NOTICE | ADC_READ_COMPLETE_NOTICE | ADC_CYCLES_COMPUTED_NOTICE);    
     simulate_button_click(&read_button);
 
     // events = k_event_wait(&program_test_events,
@@ -549,11 +575,22 @@ static int ain1_dc_cb(const struct device *dev, unsigned int chan, void *data, u
     return 0;
 }
 
+static int ain2_dc_cb(const struct device *dev, unsigned int chan, void *data, uint32_t *result)
+{
+    ARG_UNUSED(dev);
+    ARG_UNUSED(chan);
+    ARG_UNUSED(data);
+    *result = 2048;
+    return 0;
+}
+
 ZTEST(diff_adc_tests, test_p2_07_dc_signal_zero_cycles)
 {
     /* AIN1 = constant positive, AIN2 = same constant → diff = 0 always */
+    // adc_emul_value_func_set(adc_emul_dev, AIN1_CHANNEL_ID, ain1_dc_cb, NULL);
+    // adc_emul_value_func_set(adc_emul_dev, AIN2_CHANNEL_ID, ain1_dc_cb, NULL);
     adc_emul_value_func_set(adc_emul_dev, AIN1_CHANNEL_ID, ain1_dc_cb, NULL);
-    adc_emul_value_func_set(adc_emul_dev, AIN2_CHANNEL_ID, ain1_dc_cb, NULL);
+    adc_emul_value_func_set(adc_emul_dev, AIN2_CHANNEL_ID, ain2_dc_cb, NULL);
 
     // start_main(500);
     simulate_button_click(&sample_button);
