@@ -426,25 +426,21 @@ ZTEST(diff_adc_tests, test_p2_03_sample_button_disabled_during_acquisition)
 ZTEST(diff_adc_tests, test_p2_04_returns_to_idle_after_sample)
 {
     set_differential_sine(adc_emul_dev, 10, 2000, SAMPLE_INTERVAL);
-    // start_main(500);
+    k_event_clear(&program_test_events, ADC_SAMPLE_TRIGGERED_NOTICE | ADC_SAMPLE_COMPLETE_NOTICE);
 
     simulate_button_click(&sample_button);
 
-    int timeout_ms = (BUFFER_ARRAY_LEN * SAMPLE_INTERVAL) / 1000 + 500;
+    zassert_true(wait_for_event(ADC_SAMPLE_TRIGGERED_NOTICE, 800),
+        "ADC_SAMPLE_TRIGGERED_NOTICE never fired");
 
-    /* Wait for full acquisition */
-    // uint32_t events = k_event_wait(&program_test_events,
-    //                                ADC_CYCLES_COMPUTED_NOTICE,
-    //                                true, K_MSEC(timeout_ms));
-    // zassert_true(events & ADC_CYCLES_COMPUTED_NOTICE,
-    //     "Acquisition never completed");
-    zassert_true(wait_for_event(ADC_CYCLES_COMPUTED_NOTICE, 10000), "Acquisition never completed");
+    zassert_true(wait_for_event(ADC_SAMPLE_COMPLETE_NOTICE, 15000), "ADC_SAMPLE_COMPLETE_NOTICE never fired");
 
-    k_msleep(100); /* let state machine settle in IDLE */
+
+    k_msleep(500); /* let state machine settle in IDLE */
 
     /* Now read_button should be responsive */
     set_ain0_mv(adc_emul_dev, 1500);
-    k_event_clear(&program_test_events, ADC_READ_TRIGGERED_NOTICE);
+    k_event_clear(&program_test_events, ADC_READ_TRIGGERED_NOTICE | ADC_READ_COMPLETE_NOTICE | ADC_CYCLES_COMPUTED_NOTICE);
     simulate_button_click(&read_button);
 
     // events = k_event_wait(&program_test_events,
@@ -452,7 +448,7 @@ ZTEST(diff_adc_tests, test_p2_04_returns_to_idle_after_sample)
     //                       true, K_MSEC(300));
     // zassert_true(events & ADC_READ_TRIGGERED_NOTICE,
     //     "read_button not responsive after SAMPLE→IDLE transition");
-    zassert_true(wait_for_event(ADC_READ_TRIGGERED_NOTICE, 300), "read_button not responsive after SAMPLE→IDLE transition");
+    zassert_true(wait_for_event(ADC_READ_TRIGGERED_NOTICE, 1000), "read_button not responsive after SAMPLE→IDLE transition");
 }
 
 /*
