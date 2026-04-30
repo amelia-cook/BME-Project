@@ -176,21 +176,21 @@ static void simulate_button_click(const struct gpio_dt_spec *button)
     gpio_emul_input_set(button->port, button->pin, 0);
 }
 
-static void assert_led_off(const struct gpio_dt_spec *led, const char *led_name)
-{
-    int val = gpio_emul_output_get(led->port, led->pin);
-    zassert_equal(val, 0,
-        "Expected LED %s on pin %d to be OFF, but it is ON",
-        led_name, led->pin);
-}
+// static void assert_led_off(const struct gpio_dt_spec *led, const char *led_name)
+// {
+//     int val = gpio_emul_output_get(led->port, led->pin);
+//     zassert_equal(val, 0,
+//         "Expected LED %s on pin %d to be OFF, but it is ON",
+//         led_name, led->pin);
+// }
 
-static void assert_led_on(const struct gpio_dt_spec *led, const char *led_name)
-{
-    int val = gpio_emul_output_get(led->port, led->pin);
-    zassert_equal(val, 1,
-        "Expected LED %s on pin %d to be ON, but it is OFF",
-        led_name, led->pin);
-}
+// static void assert_led_on(const struct gpio_dt_spec *led, const char *led_name)
+// {
+//     int val = gpio_emul_output_get(led->port, led->pin);
+//     zassert_equal(val, 1,
+//         "Expected LED %s on pin %d to be ON, but it is OFF",
+//         led_name, led->pin);
+// }
 
 /* ================================================================== */
 /*  ADC emulator helpers                                              */
@@ -209,17 +209,17 @@ static void assert_led_on(const struct gpio_dt_spec *led, const char *led_name)
 
 static uint32_t g_ain0_raw_value;
 
-static int ain0_const_cb(const struct device *dev,
-                         unsigned int chan,
-                         void *data,
-                         uint32_t *result)
-{
-    ARG_UNUSED(dev);
-    ARG_UNUSED(chan);
-    ARG_UNUSED(data);
-    *result = g_ain0_raw_value;
-    return 0;
-}
+// static int ain0_const_cb(const struct device *dev,
+//                          unsigned int chan,
+//                          void *data,
+//                          uint32_t *result)
+// {
+//     ARG_UNUSED(dev);
+//     ARG_UNUSED(chan);
+//     ARG_UNUSED(data);
+//     *result = g_ain0_raw_value;
+//     return 0;
+// }
 
 /*
  * set_ain0_mv — inject a constant millivolt value on AIN0.

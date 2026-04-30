@@ -133,11 +133,13 @@ extern struct k_event program_test_events;
 #define ADC_SAMPLE_TRIGGERED()                                          \
 {                                                                       \
     k_event_post(&program_test_events, ADC_SAMPLE_TRIGGERED_NOTICE);    \
+    printk("***** ADC_SAMPLE_TRIGGERED *****")                          \
 }
 
 #define ADC_SAMPLE_COMPLETE()                                           \
 {                                                                       \
     k_event_post(&program_test_events, ADC_SAMPLE_COMPLETE_NOTICE);     \
+    printk("***** ADC_SAMPLE_COMPLETE *****")                          \
 }
 
 #define ADC_CYCLES_COMPUTED(cycles)                                     \
@@ -145,6 +147,7 @@ extern struct k_event program_test_events;
     do {                                                                \
         student_calc_cycles_result = (cycles);                          \
         k_event_post(&program_test_events, ADC_CYCLES_COMPUTED_NOTICE); \
+        printk("***** ADC_CYCLES_COMPUTED *****")                          \
     } while (0);                                                        \
 }
 
