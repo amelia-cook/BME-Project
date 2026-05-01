@@ -672,4 +672,9 @@ static void sample_exit(void *o) {
         LOG_ERR("Cannot attach callback to sw3.");
         smf_set_terminate(SMF_CTX(&s_context), err);
     }
+    err = gpio_pin_interrupt_configure_dt(&read_button, GPIO_INT_EDGE_TO_ACTIVE); 
+    if (err < 0) {
+        LOG_ERR("Cannot attach callback to sw3.");
+        smf_set_terminate(SMF_CTX(&s_context), err);
+    }
 }
