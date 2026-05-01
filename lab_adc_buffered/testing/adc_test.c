@@ -571,20 +571,17 @@ ZTEST(diff_adc_tests, test_p2_04_returns_to_idle_after_sample)
 
     zassert_true(wait_for_event(ADC_SAMPLE_COMPLETE_NOTICE, 15000), "ADC_SAMPLE_COMPLETE_NOTICE never fired");
 
+    k_msleep(1500);
 
-    k_msleep(1500); /* let state machine settle in IDLE */
+    /* Clear AIN1 callback before switching to AIN0 mode */
+    adc_emul_value_func_set(adc_emul_dev, AIN1_CHANNEL_ID, NULL, NULL);
 
-    /* Now read_button should be responsive */
     set_ain0_mv(adc_emul_dev, 1500);
-    k_event_clear(&program_test_events, ADC_READ_TRIGGERED_NOTICE | ADC_READ_COMPLETE_NOTICE | ADC_CYCLES_COMPUTED_NOTICE);    
+    k_event_clear(&program_test_events, 
+        ADC_READ_TRIGGERED_NOTICE | ADC_READ_COMPLETE_NOTICE | ADC_CYCLES_COMPUTED_NOTICE);
     simulate_button_click(&read_button);
-
-    // events = k_event_wait(&program_test_events,
-    //                       ADC_READ_TRIGGERED_NOTICE,
-    //                       true, K_MSEC(300));
-    // zassert_true(events & ADC_READ_TRIGGERED_NOTICE,
-    //     "read_button not responsive after SAMPLE→IDLE transition");
-    zassert_true(wait_for_event(ADC_READ_TRIGGERED_NOTICE, 1000), "read_button not responsive after SAMPLE→IDLE transition");
+    zassert_true(wait_for_event(ADC_READ_TRIGGERED_NOTICE, 1000),
+        "read_button not responsive after SAMPLE→IDLE transition");
 }
 
 /*

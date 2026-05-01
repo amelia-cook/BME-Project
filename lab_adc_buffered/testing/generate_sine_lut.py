@@ -4,7 +4,7 @@ import math
 SAMPLES     = 800
 FREQ_HZ     = 10
 INTERVAL_US = 2500
-AMPLITUDE   = 1000   # half of 2000 raw
+AMPLITUDE = 16000
 
 with open("sine_lut.h", "w") as f:
     f.write("#pragma once\n")
