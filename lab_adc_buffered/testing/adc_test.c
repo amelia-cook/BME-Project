@@ -568,8 +568,9 @@ ZTEST(diff_adc_tests, test_p2_04_returns_to_idle_after_sample)
 
     zassert_true(wait_for_event(ADC_SAMPLE_TRIGGERED_NOTICE, 800),
         "ADC_SAMPLE_TRIGGERED_NOTICE never fired");
-    
+
     zassert_true(wait_for_event(ADC_SAMPLE_COMPLETE_NOTICE, 10000), "ADC_SAMPLE_COMPLETE_NOTICE never fired");
+    
     printk("***** after zassert true ADC_SAMPLE_COMPLETE_NOTICE\n");
     k_msleep(500);
     printk("***** after sleep\n");

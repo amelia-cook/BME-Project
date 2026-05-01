@@ -105,6 +105,7 @@ extern struct k_event program_test_events;
 #define ADC_READ_TRIGGERED()                                            \
 {                                                                       \
     k_event_post(&program_test_events, ADC_READ_TRIGGERED_NOTICE);      \
+    printk("***** print : ADC_READ_TRIGGERED_NOTICE *****");                          \
 }
 
 #define ADC_READ_COMPLETE(mv, freq)                                     \
@@ -113,12 +114,14 @@ extern struct k_event program_test_events;
         student_adc_mv = (mv);                                          \
         student_mapped_freq = (freq);                                   \
         k_event_post(&program_test_events, ADC_READ_COMPLETE_NOTICE);   \
+        printk("***** print : ADC_READ_COMPLETE_NOTICE *****");                          \
     } while (0);                                                        \
 }
 
 #define ADC_BLINK_COMPLETE()                                            \
 {                                                                       \
     k_event_post(&program_test_events, ADC_BLINK_DONE_NOTICE);          \
+    printk("***** print : ADC_BLINK_DONE_NOTICE *****");                          \
 }
 
 /* ------------------------------------------------------------------ */

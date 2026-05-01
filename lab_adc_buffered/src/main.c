@@ -485,7 +485,6 @@ static void reading_run(void *o) {
         LOG_ERR("Could not read (%d)", ret);
     } else {
         LOG_DBG("Raw ADC Buffer: %d", buf);
-        // ADC_READ_COMPLETE();
     }
     
     int32_t val_mv;
@@ -508,7 +507,7 @@ static void reading_run(void *o) {
     float max_v = MAX_V_MV;
     s_context.freq = ((s_context.millivolts * (MAX_FREQ_HZ - MIN_FREQ_HZ)) / max_v) + MIN_FREQ_HZ;
     LOG_INF("Mapped frequency (Hz): %f", (double)s_context.freq);
-    
+    ADC_READ_COMPLETE(val_mv, (double)s_context.freq);
     s_context.ontime = (MS_PER_HZ / s_context.freq) / 10;
     s_context.offtime = (MS_PER_HZ / s_context.freq) - s_context.ontime;
 }
