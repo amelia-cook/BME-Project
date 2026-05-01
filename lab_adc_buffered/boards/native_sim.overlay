@@ -81,18 +81,18 @@
             zephyr,reference        = "ADC_REF_INTERNAL";
             zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
             zephyr,resolution       = <12>;
-            zephyr,differential;
-            zephyr,input-negative   = <2>;
+            // zephyr,differential;
+            // zephyr,input-negative   = <2>;
         };
 
         /* AIN2 — negative input for differential channel@1 */
-        channel@2 {
-            reg = <2>;
-            zephyr,gain             = "ADC_GAIN_1_5";
-            zephyr,reference        = "ADC_REF_INTERNAL";
-            zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
-            zephyr,resolution       = <12>;
-        };
+        // channel@2 {
+        //     reg = <2>;
+        //     zephyr,gain             = "ADC_GAIN_1_5";
+        //     zephyr,reference        = "ADC_REF_INTERNAL";
+        //     zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
+        //     zephyr,resolution       = <12>;
+        // };
     };
 };
 

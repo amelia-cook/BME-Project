@@ -322,37 +322,38 @@ static int ain1_sine_cb(const struct device *dev,
 
     float sine_val = sinf(2.0f * M_PI * (float)g_sine_ain1.freq_hz * t_s);
 
-    // int32_t raw = (int32_t)(sine_val * (g_sine_ain1.amplitude_raw / 2.0f));
+    int16_t raw = (int16_t)(g_sine_ain1.amplitude_raw / 2.0f * sine_val);
 
-    // *result = (uint32_t)(2048 + raw);   // keep ADC in valid [0, 4095] range
-    *result = (uint32_t)(int32_t)(int16_t)(g_sine_ain1.amplitude_raw / 2.0f * sine_val);
+    /* Cast through int32_t first so sign extension is correct,
+       then to uint32_t as the emulator API requires */
+    *result = (uint32_t)(int32_t)raw;
 
-    g_sine_sample_idx++;   // increment HERE (AIN1 is sampled first)
+    g_sine_sample_idx++;
     return 0;
 }
 
-static int ain2_sine_inverted_cb(const struct device *dev,
-                                 unsigned int chan,
-                                 void *data,
-                                 uint32_t *result)
-{
-    ARG_UNUSED(dev);
-    ARG_UNUSED(chan);
-    ARG_UNUSED(data);
+// static int ain2_sine_inverted_cb(const struct device *dev,
+//                                  unsigned int chan,
+//                                  void *data,
+//                                  uint32_t *result)
+// {
+//     ARG_UNUSED(dev);
+//     ARG_UNUSED(chan);
+//     ARG_UNUSED(data);
 
-    // Use g_sine_sample_idx - 1 because AIN1 already incremented it
-    float t_s = (float)(g_sine_sample_idx - 1) *
-                (float)g_sine_ain1.sample_interval_us / 1e6f;
+//     // Use g_sine_sample_idx - 1 because AIN1 already incremented it
+//     float t_s = (float)(g_sine_sample_idx - 1) *
+//                 (float)g_sine_ain1.sample_interval_us / 1e6f;
 
-    float sine_val = sinf(2.0f * M_PI * (float)g_sine_ain1.freq_hz * t_s);
+//     float sine_val = sinf(2.0f * M_PI * (float)g_sine_ain1.freq_hz * t_s);
 
-    // int32_t raw = (int32_t)(-sine_val * (g_sine_ain1.amplitude_raw / 2.0f));
+//     // int32_t raw = (int32_t)(-sine_val * (g_sine_ain1.amplitude_raw / 2.0f));
 
-    // *result = (uint32_t)(2048 + raw);
-    *result = (uint32_t)(int32_t)(int16_t)(-g_sine_ain1.amplitude_raw / 2.0f * sine_val);
+//     // *result = (uint32_t)(2048 + raw);
+//     *result = (uint32_t)(int32_t)(int16_t)(-g_sine_ain1.amplitude_raw / 2.0f * sine_val);
 
-    return 0;
-}
+//     return 0;
+// }
 
 static void set_differential_sine(const struct device *dev,
                                   int freq_hz,
@@ -362,14 +363,10 @@ static void set_differential_sine(const struct device *dev,
     g_sine_ain1.freq_hz            = freq_hz;
     g_sine_ain1.amplitude_raw      = amplitude_raw;
     g_sine_ain1.sample_interval_us = sample_iv_us;
+    g_sine_sample_idx = 0;
 
-    g_sine_sample_idx = 0;   // <-- reset counter here
-
-    int ret;
-    ret = adc_emul_value_func_set(dev, AIN1_CHANNEL_ID, ain1_sine_cb, NULL);
+    int ret = adc_emul_value_func_set(dev, AIN1_CHANNEL_ID, ain1_sine_cb, NULL);
     zassert_ok(ret, "AIN1 set failed");
-    ret = adc_emul_value_func_set(dev, AIN2_CHANNEL_ID, ain2_sine_inverted_cb, NULL);
-    zassert_ok(ret, "AIN2 set failed");
 }
 
 /*
