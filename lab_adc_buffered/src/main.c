@@ -645,7 +645,6 @@ static void sample_run(void *o) {
         return;
     } else {
         LOG_DBG("Successfully read into diff_buf");
-        ADC_SAMPLE_COMPLETE();
     }
     
     // ADC_SAMPLE_COMPLETE_NOTICE();
@@ -655,6 +654,7 @@ static void sample_run(void *o) {
     ADC_CYCLES_COMPUTED(cycles);
     LOG_HEXDUMP_INF(diff_buf, sizeof(diff_buf), "Differential ADC Samples");
     
+    ADC_SAMPLE_COMPLETE();
     smf_set_state(SMF_CTX(&s_context), &states[IDLE]);
 } 
 
