@@ -13,9 +13,18 @@
 #endif
 #include <math.h>   /* sinf() */
 
+#include "sine_lut.h"
+static volatile int g_lut_idx = 0;
+
 #define SAMPLE_INTERVAL                 2500
 
 #define SINE_SAMPLES 800
+
+static int16_t g_sine_lut[SINE_SAMPLES];   /* SINE_SAMPLES = 800 */
+static volatile int g_lut_idx = 0;
+
+static const struct device *adc_emul_dev;
+static volatile int32_t g_sine_sample_idx;
 
 /* ================================================================== */
 /*  ADC emulator device handle                                        */
@@ -26,8 +35,6 @@
  * set_differential_sine helpers.  Avoids repeating DEVICE_DT_GET
  * in every test.
  */
-static const struct device *adc_emul_dev;
-static volatile int32_t g_sine_sample_idx;
 
 // static uint16_t sine_lut[SINE_SAMPLES];
 // static volatile uint32_t idx;
@@ -308,29 +315,29 @@ static void set_ain0_mv(const struct device *dev, int millivolts)
  * diff read gives the sine directly.
  */
 
-static int ain1_sine_cb(const struct device *dev,
-                        unsigned int chan,
-                        void *data,
-                        uint32_t *result)
-{
-    ARG_UNUSED(dev);
-    ARG_UNUSED(chan);
-    ARG_UNUSED(data);
+// static int ain1_sine_cb(const struct device *dev,
+//                         unsigned int chan,
+//                         void *data,
+//                         uint32_t *result)
+// {
+//     ARG_UNUSED(dev);
+//     ARG_UNUSED(chan);
+//     ARG_UNUSED(data);
 
-    float t_s = (float)g_sine_sample_idx *
-                (float)g_sine_ain1.sample_interval_us / 1e6f;
+//     float t_s = (float)g_sine_sample_idx *
+//                 (float)g_sine_ain1.sample_interval_us / 1e6f;
 
-    float sine_val = sinf(2.0f * M_PI * (float)g_sine_ain1.freq_hz * t_s);
+//     float sine_val = sinf(2.0f * M_PI * (float)g_sine_ain1.freq_hz * t_s);
 
-    int16_t raw = (int16_t)(g_sine_ain1.amplitude_raw / 2.0f * sine_val);
+//     int16_t raw = (int16_t)(g_sine_ain1.amplitude_raw / 2.0f * sine_val);
 
-    /* Cast through int32_t first so sign extension is correct,
-       then to uint32_t as the emulator API requires */
-    *result = (uint32_t)(int32_t)raw;
+//     /* Cast through int32_t first so sign extension is correct,
+//        then to uint32_t as the emulator API requires */
+//     *result = (uint32_t)(int32_t)raw;
 
-    g_sine_sample_idx++;
-    return 0;
-}
+//     g_sine_sample_idx++;
+//     return 0;
+// }
 
 // static int ain2_sine_inverted_cb(const struct device *dev,
 //                                  unsigned int chan,
@@ -355,19 +362,64 @@ static int ain1_sine_cb(const struct device *dev,
 //     return 0;
 // }
 
+// static void set_differential_sine(const struct device *dev,
+//                                   int freq_hz,
+//                                   int amplitude_raw,
+//                                   int sample_iv_us)
+// {
+//     /* Precompute the sine table */
+//     g_lut_idx = 0;
+//     for (int i = 0; i < SINE_SAMPLES; i++) {
+//         float t_s = (float)i * (float)sample_iv_us / 1e6f;
+//         float s   = sinf(2.0f * M_PI * (float)freq_hz * t_s);
+//         g_sine_lut[i] = (int16_t)(s * (amplitude_raw / 2.0f));
+//     }
+
+//     int ret = adc_emul_value_func_set(dev, AIN1_CHANNEL_ID, lut_sine_cb, NULL);
+//     zassert_ok(ret, "AIN1 sine LUT set failed");
+// }
+
+
+static int lut_sine_cb(const struct device *dev,
+                       unsigned int chan,
+                       void *data,
+                       uint32_t *result)
+{
+    ARG_UNUSED(dev);
+    ARG_UNUSED(chan);
+    ARG_UNUSED(data);
+
+    int16_t raw = sine_lut[g_lut_idx % SINE_LUT_LEN];
+    g_lut_idx++;
+    *result = (uint32_t)(int32_t)raw;
+    return 0;
+}
+
 static void set_differential_sine(const struct device *dev,
                                   int freq_hz,
                                   int amplitude_raw,
                                   int sample_iv_us)
 {
-    g_sine_ain1.freq_hz            = freq_hz;
-    g_sine_ain1.amplitude_raw      = amplitude_raw;
-    g_sine_ain1.sample_interval_us = sample_iv_us;
-    g_sine_sample_idx = 0;
+    g_lut_idx = 0;   // reset before every test
 
-    int ret = adc_emul_value_func_set(dev, AIN1_CHANNEL_ID, ain1_sine_cb, NULL);
-    zassert_ok(ret, "AIN1 set failed");
+    int ret = adc_emul_value_func_set(dev, AIN1_CHANNEL_ID, lut_sine_cb, NULL);
+    zassert_ok(ret, "AIN1 sine LUT set failed");
 }
+
+
+// static void set_differential_sine(const struct device *dev,
+//                                   int freq_hz,
+//                                   int amplitude_raw,
+//                                   int sample_iv_us)
+// {
+//     g_sine_ain1.freq_hz            = freq_hz;
+//     g_sine_ain1.amplitude_raw      = amplitude_raw;
+//     g_sine_ain1.sample_interval_us = sample_iv_us;
+//     g_sine_sample_idx = 0;
+
+//     int ret = adc_emul_value_func_set(dev, AIN1_CHANNEL_ID, ain1_sine_cb, NULL);
+//     zassert_ok(ret, "AIN1 set failed");
+// }
 
 /*
  * assert_cycles_computed — wait for ADC_CYCLES_COMPUTED_NOTICE then
