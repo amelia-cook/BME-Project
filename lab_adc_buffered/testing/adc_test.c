@@ -317,18 +317,16 @@ static int ain1_sine_cb(const struct device *dev,
     ARG_UNUSED(chan);
     ARG_UNUSED(data);
 
-    static int sample = 0;
+    float t_s = (float)g_sine_sample_idx *
+                (float)g_sine_ain1.sample_interval_us / 1e6f;
 
-    float t_s = (float)sample * g_sine_ain1.sample_interval_us / 1e6f;
+    float sine_val = sinf(2.0f * M_PI * (float)g_sine_ain1.freq_hz * t_s);
 
-    float sine_val = sinf(2.0f * M_PI * g_sine_ain1.freq_hz * t_s);
-
-    /* centered around mid-scale (2048 for 12-bit ADC) */
     int32_t raw = (int32_t)(sine_val * (g_sine_ain1.amplitude_raw / 2.0f));
 
-    *result = (uint32_t)(2048 + raw);   // keep ADC in valid range
+    *result = (uint32_t)(2048 + raw);   // keep ADC in valid [0, 4095] range
 
-    sample++;
+    g_sine_sample_idx++;   // increment HERE (AIN1 is sampled first)
     return 0;
 }
 
@@ -341,17 +339,16 @@ static int ain2_sine_inverted_cb(const struct device *dev,
     ARG_UNUSED(chan);
     ARG_UNUSED(data);
 
-    static int sample = 0;
+    // Use g_sine_sample_idx - 1 because AIN1 already incremented it
+    float t_s = (float)(g_sine_sample_idx - 1) *
+                (float)g_sine_ain1.sample_interval_us / 1e6f;
 
-    float t_s = (float)sample * g_sine_ain1.sample_interval_us / 1e6f;
-
-    float sine_val = sinf(2.0f * M_PI * g_sine_ain1.freq_hz * t_s);
+    float sine_val = sinf(2.0f * M_PI * (float)g_sine_ain1.freq_hz * t_s);
 
     int32_t raw = (int32_t)(-sine_val * (g_sine_ain1.amplitude_raw / 2.0f));
 
     *result = (uint32_t)(2048 + raw);
 
-    sample++;
     return 0;
 }
 
@@ -364,11 +361,11 @@ static void set_differential_sine(const struct device *dev,
     g_sine_ain1.amplitude_raw      = amplitude_raw;
     g_sine_ain1.sample_interval_us = sample_iv_us;
 
-    int ret;
+    g_sine_sample_idx = 0;   // <-- reset counter here
 
+    int ret;
     ret = adc_emul_value_func_set(dev, AIN1_CHANNEL_ID, ain1_sine_cb, NULL);
     zassert_ok(ret, "AIN1 set failed");
-
     ret = adc_emul_value_func_set(dev, AIN2_CHANNEL_ID, ain2_sine_inverted_cb, NULL);
     zassert_ok(ret, "AIN2 set failed");
 }
