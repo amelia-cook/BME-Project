@@ -568,20 +568,24 @@ ZTEST(diff_adc_tests, test_p2_04_returns_to_idle_after_sample)
 
     zassert_true(wait_for_event(ADC_SAMPLE_TRIGGERED_NOTICE, 800),
         "ADC_SAMPLE_TRIGGERED_NOTICE never fired");
-
-    zassert_true(wait_for_event(ADC_SAMPLE_COMPLETE_NOTICE, 15000), "ADC_SAMPLE_COMPLETE_NOTICE never fired");
-
+    
+    zassert_true(wait_for_event(ADC_SAMPLE_COMPLETE_NOTICE, 10000), "ADC_SAMPLE_COMPLETE_NOTICE never fired");
+    printk("***** after zassert true ADC_SAMPLE_COMPLETE_NOTICE\n");
     k_msleep(500);
-
+    printk("***** after sleep\n");
     /* Clear AIN1 callback before switching to AIN0 mode */
     // adc_emul_value_func_set(adc_emul_dev, AIN1_CHANNEL_ID, NULL, NULL);
 
     set_ain0_mv(adc_emul_dev, 1500);
+    printk("***** after set_ain0_mv\n");
     k_event_clear(&program_test_events, 
         ADC_READ_TRIGGERED_NOTICE | ADC_READ_COMPLETE_NOTICE | ADC_CYCLES_COMPUTED_NOTICE);
+    printk("***** after k event clear\n");
     simulate_button_click(&read_button);
+    printk("***** after read button\n");
     zassert_true(wait_for_event(ADC_READ_TRIGGERED_NOTICE, 1000),
         "read_button not responsive after SAMPLE→IDLE transition");
+    printk("***** after z assert true ADC_READ_TRIGGERED_NOTICE\n");
 }
 
 /*
