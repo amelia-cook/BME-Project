@@ -574,7 +574,7 @@ ZTEST(diff_adc_tests, test_p2_04_returns_to_idle_after_sample)
     k_msleep(1500);
 
     /* Clear AIN1 callback before switching to AIN0 mode */
-    adc_emul_value_func_set(adc_emul_dev, AIN1_CHANNEL_ID, NULL, NULL);
+    // adc_emul_value_func_set(adc_emul_dev, AIN1_CHANNEL_ID, NULL, NULL);
 
     set_ain0_mv(adc_emul_dev, 1500);
     k_event_clear(&program_test_events, 
