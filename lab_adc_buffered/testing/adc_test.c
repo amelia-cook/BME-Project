@@ -571,7 +571,7 @@ ZTEST(diff_adc_tests, test_p2_04_returns_to_idle_after_sample)
 
     zassert_true(wait_for_event(ADC_SAMPLE_COMPLETE_NOTICE, 15000), "ADC_SAMPLE_COMPLETE_NOTICE never fired");
 
-    k_msleep(1500);
+    k_msleep(500);
 
     /* Clear AIN1 callback before switching to AIN0 mode */
     // adc_emul_value_func_set(adc_emul_dev, AIN1_CHANNEL_ID, NULL, NULL);
