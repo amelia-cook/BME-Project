@@ -14,7 +14,7 @@
 #include <math.h>   /* sinf() */
 
 #include "sine_lut.h"
-static volatile int g_lut_idx = 0;
+// static volatile int g_lut_idx = 0;
 
 #define SAMPLE_INTERVAL                 2500
 
