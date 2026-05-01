@@ -322,9 +322,10 @@ static int ain1_sine_cb(const struct device *dev,
 
     float sine_val = sinf(2.0f * M_PI * (float)g_sine_ain1.freq_hz * t_s);
 
-    int32_t raw = (int32_t)(sine_val * (g_sine_ain1.amplitude_raw / 2.0f));
+    // int32_t raw = (int32_t)(sine_val * (g_sine_ain1.amplitude_raw / 2.0f));
 
-    *result = (uint32_t)(2048 + raw);   // keep ADC in valid [0, 4095] range
+    // *result = (uint32_t)(2048 + raw);   // keep ADC in valid [0, 4095] range
+    *result = (uint32_t)(int32_t)(int16_t)(g_sine_ain1.amplitude_raw / 2.0f * sine_val);
 
     g_sine_sample_idx++;   // increment HERE (AIN1 is sampled first)
     return 0;
@@ -345,9 +346,10 @@ static int ain2_sine_inverted_cb(const struct device *dev,
 
     float sine_val = sinf(2.0f * M_PI * (float)g_sine_ain1.freq_hz * t_s);
 
-    int32_t raw = (int32_t)(-sine_val * (g_sine_ain1.amplitude_raw / 2.0f));
+    // int32_t raw = (int32_t)(-sine_val * (g_sine_ain1.amplitude_raw / 2.0f));
 
-    *result = (uint32_t)(2048 + raw);
+    // *result = (uint32_t)(2048 + raw);
+    *result = (uint32_t)(int32_t)(int16_t)(-g_sine_ain1.amplitude_raw / 2.0f * sine_val);
 
     return 0;
 }
