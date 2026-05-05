@@ -658,7 +658,4 @@ ZTEST(adc_single_sample_tests, test_p1_10_heartbeat_unaffected)
     assert_led_blink_freq(&heartbeat_led, 3000, 1, 1, "heartbeat (during blink)");
 }
 
-/* ================================================================== */
-/*  Register suites                                                   */
-/* ================================================================== */
 ZTEST_SUITE(adc_single_sample_tests, NULL, NULL, before, after, NULL);
